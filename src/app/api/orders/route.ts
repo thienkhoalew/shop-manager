@@ -46,10 +46,10 @@ export async function POST(request: Request) {
                 depositAmount: depositAmount ? parseFloat(depositAmount) : null,
                 receiptImage,
                 orderItems: {
-                    create: items.map((item: any) => ({
+                    create: items.map((item: { productId: string; quantity: string | number; price: string | number }) => ({
                         productId: item.productId,
-                        quantity: parseInt(item.quantity, 10),
-                        price: parseFloat(item.price), // Snapshot price
+                        quantity: typeof item.quantity === 'string' ? parseInt(item.quantity, 10) : Number(item.quantity),
+                        price: typeof item.price === 'string' ? parseFloat(item.price) : Number(item.price), // Snapshot price
                     }))
                 }
             }

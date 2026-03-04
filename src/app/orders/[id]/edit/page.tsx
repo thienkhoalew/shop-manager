@@ -66,7 +66,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                 // Fetch order
                 const orderRes = await fetch('/api/orders');
                 const orders = await orderRes.json();
-                const order = orders.find((o: any) => o.id === id);
+                const order = orders.find((o: { id: string }) => o.id === id);
 
                 if (!order) {
                     toast.error('Không tìm thấy đơn hàng');
@@ -81,7 +81,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                 setHasDeposit(order.hasDeposit ? 'yes' : 'no');
                 setDepositAmount(order.depositAmount || '');
                 setExistingReceiptImage(order.receiptImage);
-                const orderItemsArr = order.orderItems.map((item: any) => ({
+                const orderItemsArr = order.orderItems.map((item: { productId: string; quantity: number; product: Product }) => ({
                     productId: item.productId,
                     quantity: item.quantity,
                     product: item.product
@@ -96,7 +96,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                     shippingFee: order.shippingFee,
                     hasDeposit: order.hasDeposit ? 'yes' : 'no',
                     depositAmount: order.depositAmount || '',
-                    orderItems: orderItemsArr.map((i: any) => ({ productId: i.productId, quantity: i.quantity }))
+                    orderItems: orderItemsArr.map((i: { productId: string; quantity: number | '' }) => ({ productId: i.productId, quantity: i.quantity }))
                 }));
             } catch (error) {
                 toast.error('Lỗi khi tải dữ liệu');

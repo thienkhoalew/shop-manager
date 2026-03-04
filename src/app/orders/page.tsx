@@ -71,10 +71,6 @@ export default function OrdersPage() {
     const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
     const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
-
     const fetchOrders = async () => {
         try {
             const res = await fetch('/api/orders');
@@ -86,6 +82,11 @@ export default function OrdersPage() {
             toast.error('Lỗi tải danh sách đơn hàng');
         }
     };
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchOrders();
+    }, []);
 
     const handleOpenUpdate = (order: Order) => {
         setSelectedOrder(order);
@@ -581,7 +582,7 @@ export default function OrdersPage() {
 
                         {newStatus === 'DONE' && (
                             <div className="space-y-2 text-sm text-rose-900 bg-rose-50 border border-rose-100 p-3 rounded-md">
-                                Lưu ý: Nếu chuyển trạng thái sang "Đã xong", hình ảnh hóa đơn cọc (nếu có) sẽ bị xóa khỏi hệ thống tự động để tiết kiệm dung lượng lưu trữ.
+                                Lưu ý: Nếu chuyển trạng thái sang &quot;Đã xong&quot;, hình ảnh hóa đơn cọc (nếu có) sẽ bị xóa khỏi hệ thống tự động để tiết kiệm dung lượng lưu trữ.
                             </div>
                         )}
 

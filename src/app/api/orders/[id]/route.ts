@@ -23,7 +23,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
         // If only status/trackingCode are provided (old behavior)
-        const updateData: any = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updateData: Record<string, any> = {};
         if (status !== undefined) updateData.status = status;
         if (trackingCode !== undefined) updateData.trackingCode = trackingCode;
         if (customerName !== undefined) updateData.customerName = customerName;
@@ -38,10 +39,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         if (items) {
             updateData.orderItems = {
                 deleteMany: {},
-                create: items.map((item: any) => ({
+                create: items.map((item: { productId: string; quantity: string | number; price: string | number }) => ({
                     productId: item.productId,
-                    quantity: parseInt(item.quantity, 10),
-                    price: parseFloat(item.price),
+                    quantity: typeof item.quantity === 'string' ? parseInt(item.quantity, 10) : Number(item.quantity),
+                    price: typeof item.price === 'string' ? parseFloat(item.price) : Number(item.price),
                 }))
             };
         }
