@@ -198,7 +198,7 @@ export default function OrdersPage() {
             } else {
                 toast.error('Gặp lỗi khi xóa đơn hàng');
             }
-        } catch (error) {
+        } catch {
             toast.error('Lỗi khi xóa đơn hàng');
         }
     };
@@ -550,6 +550,7 @@ export default function OrdersPage() {
 
                     {receiptUrl && (
                         <div className="relative w-full h-full flex items-center justify-center p-4">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={receiptUrl}
                                 alt="Biên lai thanh toán"

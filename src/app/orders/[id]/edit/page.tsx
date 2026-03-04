@@ -98,7 +98,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                     depositAmount: order.depositAmount || '',
                     orderItems: orderItemsArr.map((i: { productId: string; quantity: number | '' }) => ({ productId: i.productId, quantity: i.quantity }))
                 }));
-            } catch (error) {
+            } catch {
                 toast.error('Lỗi khi tải dữ liệu');
             } finally {
                 setIsLoading(false);
@@ -184,7 +184,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                 setIsAddProductOpen(false);
                 setNewProductForm({ name: '', price: '' });
             }
-        } catch (error) {
+        } catch {
             toast.error('Có lỗi xảy ra khi thêm sản phẩm');
         } finally {
             setIsAddingProduct(false);

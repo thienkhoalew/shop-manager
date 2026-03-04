@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
@@ -7,8 +7,24 @@ import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
 export const metadata: Metadata = {
-  title: "Shop Manager",
-  description: "Shop Management Application",
+  title: "Rim Cưng Shop",
+  description: "Rim Cưng Shop",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Rim Cưng Shop",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#e11d48", // rose-600
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

@@ -41,8 +41,6 @@ export default function NewOrderPage() {
 
     const [orderItems, setOrderItems] = useState<OrderItemForm[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
-    const [isDirty, setIsDirty] = useState(false);
 
     const [isAddProductOpen, setIsAddProductOpen] = useState(false);
     const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -108,7 +106,7 @@ export default function NewOrderPage() {
             } else {
                 toast.error('Có lỗi xảy ra khi thêm sản phẩm');
             }
-        } catch (error) {
+        } catch {
             toast.error('Có lỗi xảy ra khi thêm sản phẩm');
         } finally {
             setIsAddingProduct(false);
@@ -204,7 +202,6 @@ export default function NewOrderPage() {
 
             if (res.ok) {
                 toast.success('Tạo đơn hàng thành công');
-                setIsSaved(true);
                 router.push('/orders');
             } else {
                 toast.error('Tạo đơn hàng thất bại');

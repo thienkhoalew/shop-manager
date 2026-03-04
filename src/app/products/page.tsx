@@ -49,7 +49,7 @@ export default function ProductsPage() {
                 const data = await res.json();
                 setProducts(data);
             }
-        } catch (error) {
+        } catch {
             toast.error('Lỗi khi tải danh sách sản phẩm');
         }
     };
@@ -94,7 +94,7 @@ export default function ProductsPage() {
             } else {
                 toast.error('Có lỗi xảy ra');
             }
-        } catch (error) {
+        } catch {
             toast.error('Có lỗi xảy ra');
         } finally {
             setIsLoading(false);
@@ -129,7 +129,7 @@ export default function ProductsPage() {
                 const data = await res.json();
                 toast.error(data.error || 'Xóa thất bại');
             }
-        } catch (error) {
+        } catch {
             toast.error('Lỗi khi xóa sản phẩm');
         }
     };
@@ -216,6 +216,7 @@ export default function ProductsPage() {
                                         }}
                                     />
                                     {(imagePreview || formData.imageUrl) && (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={imagePreview || formData.imageUrl || ''} alt="Preview" className="mt-2 max-h-40 object-cover" />
                                     )}
                                 </div>
@@ -244,6 +245,7 @@ export default function ProductsPage() {
                         <div key={product.id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
                             <div className="aspect-square bg-slate-50 relative border-b border-slate-50 flex items-center justify-center overflow-hidden">
                                 {product.imageUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img
                                         src={product.imageUrl}
                                         alt={product.name}
