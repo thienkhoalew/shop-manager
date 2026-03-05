@@ -6,7 +6,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     try {
         const { id } = await params;
         const body = await request.json();
-        const { name, description, price, imageUrl } = body;
+        const { name, description, basePrice, salePrice, imageUrl } = body;
 
         const oldProduct = await prisma.product.findUnique({ where: { id } });
 
@@ -15,7 +15,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             data: {
                 name,
                 description,
-                price: parseFloat(price),
+                basePrice: parseFloat(basePrice) || 0,
+                salePrice: parseFloat(salePrice) || 0,
                 imageUrl,
             },
         });

@@ -18,13 +18,14 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, description, price, imageUrl } = body;
+        const { name, description, basePrice, salePrice, imageUrl } = body;
 
         const newProduct = await prisma.product.create({
             data: {
                 name,
                 description,
-                price: parseFloat(price),
+                basePrice: parseFloat(basePrice) || 0,
+                salePrice: parseFloat(salePrice) || 0,
                 imageUrl,
             },
         });

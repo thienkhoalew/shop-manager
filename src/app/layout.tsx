@@ -33,9 +33,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${inter.className} flex h-screen bg-[#fdfbfb] antialiased`}
+        suppressHydrationWarning
       >
         <Sidebar />
         <main className="flex-1 overflow-y-auto w-full pb-20 md:pb-0">

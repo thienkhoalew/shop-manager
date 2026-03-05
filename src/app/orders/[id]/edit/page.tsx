@@ -11,7 +11,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/utils';
@@ -19,7 +18,8 @@ import { formatPrice } from '@/lib/utils';
 type Product = {
     id: string;
     name: string;
-    price: number;
+    basePrice: number;
+    salePrice: number;
 };
 
 type OrderItemForm = {
@@ -52,8 +52,11 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [newProductForm, setNewProductForm] = useState({
         name: '',
-        price: '',
+        basePrice: '',
+        salePrice: '',
+        description: '',
     });
+    const [newProductFile, setNewProductFile] = useState<File | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -163,16 +166,38 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
         };
     }, [isSaved, isDirty]);
 
-    const handleAddNewProduct = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAddNewProduct = async () => {
         setIsAddingProduct(true);
         try {
+            let imageUrl = null;
+            if (newProductFile) {
+                const formData = new FormData();
+                formData.append('file', newProductFile);
+
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (uploadRes.ok) {
+                    const uploadData = await uploadRes.json();
+                    imageUrl = uploadData.url;
+                } else {
+                    toast.error('Lỗi upload ảnh sản phẩm');
+                    setIsAddingProduct(false);
+                    return;
+                }
+            }
+
             const res = await fetch('/api/products', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: newProductForm.name,
-                    price: newProductForm.price,
+                    basePrice: newProductForm.basePrice,
+                    salePrice: newProductForm.salePrice,
+                    description: newProductForm.description,
+                    imageUrl,
                 }),
             });
 
@@ -182,7 +207,8 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                 setOrderItems(prev => [...prev, { productId: addedProduct.id, quantity: 1, product: addedProduct }]);
                 toast.success('Thêm sản phẩm thành công');
                 setIsAddProductOpen(false);
-                setNewProductForm({ name: '', price: '' });
+                setNewProductForm({ name: '', basePrice: '', salePrice: '', description: '' });
+                setNewProductFile(null);
             }
         } catch {
             toast.error('Có lỗi xảy ra khi thêm sản phẩm');
@@ -219,7 +245,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
     };
 
     const calculateItemsTotal = () => {
-        return orderItems.reduce((acc, item) => acc + ((item.product?.price || 0) * (Number(item.quantity) || 0)), 0);
+        return orderItems.reduce((acc, item) => acc + ((item.product?.salePrice || 0) * (Number(item.quantity) || 0)), 0);
     };
 
     const totalAmount = calculateItemsTotal() + shippingFee;
@@ -259,7 +285,8 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                 items: orderItems.map(item => ({
                     productId: item.productId,
                     quantity: Number(item.quantity) || 1,
-                    price: item.product?.price || 0,
+                    basePrice: item.product?.basePrice || 0,
+                    salePrice: item.product?.salePrice || 0,
                 }))
             };
 
@@ -339,43 +366,28 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                             >
                                 <option value="">-- Thêm sản phẩm khác --</option>
                                 {products.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name} - {formatPrice(p.price)} đ</option>
+                                    <option key={p.id} value={p.id}>{p.name} - {formatPrice(p.salePrice)} đ</option>
                                 ))}
                             </select>
 
-                            <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
-                                <DialogTrigger asChild>
-                                    <Button type="button" variant="outline" className="shrink-0 whitespace-nowrap w-full md:w-auto">
-                                        + Sản phẩm mới
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Tạo Sản Phẩm Mới</DialogTitle>
-                                    </DialogHeader>
-                                    <form onSubmit={handleAddNewProduct} className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="new-name">Tên sản phẩm *</Label>
-                                            <Input id="new-name" value={newProductForm.name} onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })} required />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="new-price">Giá (VNĐ) *</Label>
-                                            <Input id="new-price" type="number" min="0" value={newProductForm.price} onChange={(e) => setNewProductForm({ ...newProductForm, price: e.target.value })} required />
-                                        </div>
-                                        <div className="flex justify-end space-x-2 pt-4">
-                                            <Button type="button" variant="outline" onClick={() => setIsAddProductOpen(false)}>Hủy</Button>
-                                            <Button type="submit" disabled={isAddingProduct}>{isAddingProduct ? 'Đang lưu...' : 'Lưu & Chọn'}</Button>
-                                        </div>
-                                    </form>
-                                </DialogContent>
-                            </Dialog>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="shrink-0 whitespace-nowrap w-full md:w-auto"
+                                onClick={() => setIsAddProductOpen(true)}
+                            >
+                                + Sản phẩm mới
+                            </Button>
                         </div>
 
                         {orderItems.map((item, idx) => (
                             <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between p-3 border rounded-md gap-3">
                                 <div className="flex-1">
                                     <div className="font-medium">{item.product?.name}</div>
-                                    <div className="text-sm text-gray-500">{formatPrice(item.product?.price || 0)} đ</div>
+                                    <div className="text-xs text-slate-500">
+                                        <span className="mr-3 text-slate-500">Gốc: {formatPrice(item.product?.basePrice || 0)} đ</span>
+                                        <span className="font-semibold text-rose-600">Bán: {formatPrice(item.product?.salePrice || 0)} đ</span>
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2">
@@ -383,7 +395,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                                         <Input type="number" min="1" className="w-16 h-8" value={item.quantity} onChange={(e) => updateQuantity(idx, e.target.value)} />
                                     </div>
                                     <div className="font-medium text-rose-600 min-w-[80px] text-right">
-                                        {formatPrice((item.product?.price || 0) * (Number(item.quantity) || 0))} đ
+                                        {formatPrice((item.product?.salePrice || 0) * (Number(item.quantity) || 0))} đ
                                     </div>
                                     <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => removeProduct(idx)}>Xóa</Button>
                                 </div>
@@ -434,6 +446,54 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                     </div>
                 </div>
             </form>
+
+            {/* Dialog is OUTSIDE the form to avoid triggering form submit */}
+            <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Tạo Sản Phẩm Mới</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-new-name">Tên sản phẩm *</Label>
+                            <Input id="edit-new-name" value={newProductForm.name} onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-new-description">Mô tả</Label>
+                            <Input id="edit-new-description" value={newProductForm.description} onChange={(e) => setNewProductForm({ ...newProductForm, description: e.target.value })} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-new-base-price">Giá gốc (VNĐ)</Label>
+                                <Input id="edit-new-base-price" type="number" min="0" value={newProductForm.basePrice} onChange={(e) => setNewProductForm({ ...newProductForm, basePrice: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-new-sale-price">Giá bán (VNĐ) *</Label>
+                                <Input id="edit-new-sale-price" type="number" min="0" value={newProductForm.salePrice} onChange={(e) => setNewProductForm({ ...newProductForm, salePrice: e.target.value })} required />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-new-image">Ảnh sản phẩm</Label>
+                            <Input
+                                id="edit-new-image"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) {
+                                        setNewProductFile(e.target.files[0]);
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div className="flex justify-end space-x-2 pt-4">
+                            <Button type="button" variant="outline" onClick={() => setIsAddProductOpen(false)}>Hủy</Button>
+                            <Button type="button" disabled={isAddingProduct} onClick={handleAddNewProduct}>
+                                {isAddingProduct ? 'Đang lưu...' : 'Lưu & Chọn'}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

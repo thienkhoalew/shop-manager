@@ -16,8 +16,14 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex h-screen w-64 flex-col bg-white text-slate-900 border-r border-rose-100/50">
-        <div className="flex h-16 flex-shrink-0 items-center px-6 text-xl font-bold tracking-tight text-rose-600">
+      <div
+        className="hidden md:flex h-screen w-64 flex-col bg-white text-slate-900 border-r border-rose-100/50"
+        suppressHydrationWarning
+      >
+        <div
+          className="flex h-16 flex-shrink-0 items-center px-6 text-xl font-bold tracking-tight text-rose-600"
+          suppressHydrationWarning
+        >
           Shop Manager
         </div>
         <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">

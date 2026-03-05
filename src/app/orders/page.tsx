@@ -33,7 +33,8 @@ import { formatPrice } from '@/lib/utils';
 type OrderItem = {
     id: string;
     quantity: number;
-    price: number;
+    basePrice: number;
+    salePrice: number;
     product: {
         name: string;
     };
@@ -158,8 +159,16 @@ export default function OrdersPage() {
     };
 
     const calculateTotal = (order: Order) => {
-        const itemsTotal = order.orderItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        const itemsTotal = order.orderItems.reduce((acc, item) => acc + (item.salePrice * item.quantity), 0);
         return itemsTotal + order.shippingFee;
+    };
+
+    const calculateProfit = (order: Order) => {
+        return order.orderItems.reduce((acc, item) => acc + ((item.salePrice - item.basePrice) * item.quantity), 0);
+    };
+
+    const calculateCost = (order: Order) => {
+        return order.orderItems.reduce((acc, item) => acc + (item.basePrice * item.quantity), 0);
     };
 
     const filteredOrders = orders.filter(order => {
@@ -285,7 +294,7 @@ export default function OrdersPage() {
                                                 </div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="font-medium text-rose-600">
+                                        <TableCell className="font-medium text-rose-600 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 {formatCurrency(calculateTotal(order))}
                                                 <button
@@ -372,9 +381,15 @@ export default function OrdersPage() {
                                                             <div className="font-medium text-gray-500 mb-2">Chi tiết sản phẩm</div>
                                                             <div className="space-y-2">
                                                                 {order.orderItems.map((item) => (
-                                                                    <div key={item.id} className="flex justify-between items-center border-b pb-1 last:border-0 last:pb-0 border-slate-100">
-                                                                        <span className="text-gray-700">{item.quantity}x {item.product.name}</span>
-                                                                        <span className="text-gray-600">{formatCurrency(item.price * item.quantity)}</span>
+                                                                    <div key={item.id} className="flex flex-col border-b pb-1 last:border-0 last:pb-0 border-slate-100">
+                                                                        <div className="flex justify-between items-center">
+                                                                            <span className="text-gray-700 font-medium">{item.quantity}x {item.product.name}</span>
+                                                                            <span className="text-gray-600 font-medium">{formatCurrency(item.salePrice * item.quantity)}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between text-[10px] text-slate-400 mt-0.5 italic">
+                                                                            <span>Gốc: {formatCurrency(item.basePrice)}/món</span>
+                                                                            <span>Lời: {formatCurrency((item.salePrice - item.basePrice) * item.quantity)}</span>
+                                                                        </div>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -390,7 +405,15 @@ export default function OrdersPage() {
                                                                     <span>Phí ship:</span>
                                                                     <span>{formatCurrency(order.shippingFee)}</span>
                                                                 </div>
-                                                                <div className="flex justify-between font-medium text-emerald-600 pt-1 border-t border-slate-200 mt-1">
+                                                                <div className="flex justify-between text-blue-600 font-medium border-t border-slate-200 mt-2 pt-1">
+                                                                    <span>Tiền lấy hàng:</span>
+                                                                    <span>{formatCurrency(calculateCost(order))}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-emerald-600 font-bold border-t border-slate-200 mt-1 pt-1">
+                                                                    <span>Tiền lời:</span>
+                                                                    <span>{formatCurrency(calculateProfit(order))}</span>
+                                                                </div>
+                                                                <div className="flex justify-between font-bold text-rose-600 pt-1 border-t border-slate-200 mt-1">
                                                                     <span>Cần Thu:</span>
                                                                     <span>{formatCurrency(Math.max(0, calculateTotal(order) - (order.depositAmount || 0)))}</span>
                                                                 </div>
@@ -512,9 +535,15 @@ export default function OrdersPage() {
                                     <div className="bg-slate-50 p-3 rounded border border-slate-100 space-y-2">
                                         <div className="font-medium text-gray-500 mb-1">Món hàng:</div>
                                         {order.orderItems.map((item) => (
-                                            <div key={item.id} className="flex justify-between text-gray-700">
-                                                <span>{item.quantity}x {item.product.name}</span>
-                                                <span className="text-gray-500">{formatCurrency(item.price * item.quantity)}</span>
+                                            <div key={item.id} className="flex flex-col border-b border-slate-100 pb-1 last:border-0 last:pb-0">
+                                                <div className="flex justify-between text-gray-700">
+                                                    <span>{item.quantity}x {item.product.name}</span>
+                                                    <span className="text-gray-500">{formatCurrency(item.salePrice * item.quantity)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-[10px] text-slate-400 mt-0.5 italic">
+                                                    <span>Gốc: {formatCurrency(item.basePrice)}/món</span>
+                                                    <span>Lời: {formatCurrency((item.salePrice - item.basePrice) * item.quantity)}</span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -525,6 +554,14 @@ export default function OrdersPage() {
                                     <div className="flex justify-between text-gray-600 px-1">
                                         <span>Phí vận chuyển:</span>
                                         <span>{formatCurrency(order.shippingFee)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-blue-600 px-1 pt-2 border-t border-slate-100">
+                                        <span>Tiền lấy hàng:</span>
+                                        <span>{formatCurrency(calculateCost(order))}</span>
+                                    </div>
+                                    <div className="flex justify-between font-bold text-rose-600 px-1 pt-1">
+                                        <span>Tiền lời:</span>
+                                        <span>{formatCurrency(calculateProfit(order))}</span>
                                     </div>
                                     <div className="flex justify-between font-bold text-emerald-600 px-1 pt-2 border-t border-slate-100">
                                         <span>Cần Thu Thêm:</span>

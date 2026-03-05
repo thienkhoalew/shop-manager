@@ -19,7 +19,8 @@ type Product = {
     id: string;
     name: string;
     description: string | null;
-    price: number;
+    basePrice: number;
+    salePrice: number;
     imageUrl: string | null;
 };
 
@@ -30,7 +31,8 @@ export default function ProductsPage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        price: '',
+        basePrice: '',
+        salePrice: '',
         imageUrl: '', // will be set after upload
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -87,7 +89,7 @@ export default function ProductsPage() {
                 toast.success(editingProduct ? 'Cập nhật sản phẩm thành công' : 'Thêm sản phẩm thành công');
                 setIsOpen(false);
                 setEditingProduct(null);
-                setFormData({ name: '', description: '', price: '', imageUrl: '' });
+                setFormData({ name: '', description: '', basePrice: '', salePrice: '', imageUrl: '' });
                 setImageFile(null);
                 setImagePreview('');
                 fetchProducts();
@@ -106,7 +108,8 @@ export default function ProductsPage() {
         setFormData({
             name: product.name,
             description: product.description || '',
-            price: product.price.toString(),
+            basePrice: product.basePrice.toString(),
+            salePrice: product.salePrice.toString(),
             imageUrl: product.imageUrl || '',
         });
         setImagePreview(product.imageUrl || '');
@@ -156,7 +159,7 @@ export default function ProductsPage() {
                         setIsOpen(val);
                         if (!val) {
                             setEditingProduct(null);
-                            setFormData({ name: '', description: '', price: '', imageUrl: '' });
+                            setFormData({ name: '', description: '', basePrice: '', salePrice: '', imageUrl: '' });
                             setImageFile(null);
                             setImagePreview('');
                         }
@@ -186,16 +189,28 @@ export default function ProductsPage() {
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="price">Giá (VNĐ) *</Label>
-                                    <Input
-                                        id="price"
-                                        type="number"
-                                        min="0"
-                                        value={formData.price}
-                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                        required
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="basePrice">Giá gốc (VNĐ)</Label>
+                                        <Input
+                                            id="basePrice"
+                                            type="number"
+                                            min="0"
+                                            value={formData.basePrice}
+                                            onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="salePrice">Giá bán (VNĐ) *</Label>
+                                        <Input
+                                            id="salePrice"
+                                            type="number"
+                                            min="0"
+                                            value={formData.salePrice}
+                                            onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
+                                            required
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="imageFile">Hình ảnh Sản Phẩm</Label>
@@ -279,8 +294,13 @@ export default function ProductsPage() {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="font-bold text-rose-600 mb-2 opacity-90">
-                                    {formatPrice(product.price)} đ
+                                <div className="flex flex-col gap-1 mb-2">
+                                    <div className="text-xs text-slate-500">
+                                        Gốc: {formatPrice(product.basePrice)} đ
+                                    </div>
+                                    <div className="font-bold text-rose-600 opacity-90">
+                                        {formatPrice(product.salePrice)} đ
+                                    </div>
                                 </div>
                                 {product.description && (
                                     <p className="text-xs text-slate-500 line-clamp-2 mt-auto leading-relaxed">{product.description}</p>
