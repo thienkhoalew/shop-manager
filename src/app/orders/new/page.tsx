@@ -286,7 +286,7 @@ export default function NewOrderPage() {
                         value={quickPasteText}
                         onChange={(e) => handleQuickPaste(e.target.value)}
                     />
-                    <p className="text-[10px] text-rose-400 italic">Hỗ trợ format: Tên người nhận, Sđt, Địa chỉ cũ, Tổng, Đã cọc, Cod, Tiền Ship.</p>
+                    <p className="text-[10px] text-rose-400 italic">Hỗ trợ format: Tên người nhận, Sđt, Địa chỉ cũ, Đã cọc, Tiền Ship.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-lg border shadow-sm">
