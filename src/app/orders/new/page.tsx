@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/utils';
+import { FileText, Printer } from 'lucide-react';
 
 type Product = {
     id: string;
@@ -41,6 +42,10 @@ export default function NewOrderPage() {
 
     const [orderItems, setOrderItems] = useState<OrderItemForm[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isOldCustomer, setIsOldCustomer] = useState(false);
+    const [isBillOpen, setIsBillOpen] = useState(false);
+    const [quickPasteText, setQuickPasteText] = useState('');
+    const [isFullDeposit, setIsFullDeposit] = useState(false);
 
     const [isAddProductOpen, setIsAddProductOpen] = useState(false);
     const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -58,6 +63,14 @@ export default function NewOrderPage() {
             .then((data) => setProducts(data))
             .catch(() => toast.error('Lỗi khi tải sản phẩm'));
     }, []);
+
+    // Sync deposit amount if "full deposit" is active
+    useEffect(() => {
+        if (isFullDeposit && hasDeposit === 'yes') {
+            const total = orderItems.reduce((acc, item) => acc + ((item.product?.salePrice || 0) * (Number(item.quantity) || 0)), 0);
+            setDepositAmount(total);
+        }
+    }, [orderItems, isFullDeposit, hasDeposit]);
 
     const handleAddNewProduct = async () => {
         setIsAddingProduct(true);
@@ -114,7 +127,7 @@ export default function NewOrderPage() {
         }
     };
 
-    const addProductToOrder = (productId: string) => {
+    const addProductToOrder = useCallback((productId: string) => {
         const product = products.find(p => p.id === productId);
         if (!product) return;
 
@@ -125,9 +138,9 @@ export default function NewOrderPage() {
         }
 
         setOrderItems([...orderItems, { productId, quantity: 1, product }]);
-    };
+    }, [products, orderItems]);
 
-    const updateQuantity = (idx: number, val: string) => {
+    const updateQuantity = useCallback((idx: number, val: string) => {
         const newItems = [...orderItems];
         if (val === '') {
             newItems[idx].quantity = '';
@@ -138,17 +151,54 @@ export default function NewOrderPage() {
             }
         }
         setOrderItems(newItems);
-    };
+    }, [orderItems]);
 
-    const removeProduct = (idx: number) => {
+    const removeProduct = useCallback((idx: number) => {
         setOrderItems(orderItems.filter((_, i) => i !== idx));
+    }, [orderItems]);
+
+    const handleQuickPaste = (text: string) => {
+        setQuickPasteText(text);
+        if (!text.trim()) return;
+
+        const nameMatch = text.match(/🛍️Tên người nhận:\s*(.*)/i);
+        const phoneMatch = text.match(/☎️Sđt:\s*([\d\s]+)/i);
+        const addressMatch = text.match(/🏠Địa chỉ.*:\s*(.*)/i);
+        const depositMatch = text.match(/🧧Đã cọc:\s*(.*)/i);
+        const shipMatch = text.match(/🛵Tiền Ship:\s*(.*)/i);
+
+        if (nameMatch) setCustomerName(nameMatch[1].trim());
+        if (phoneMatch) setCustomerPhone(phoneMatch[1].trim());
+        if (addressMatch) setCustomerAddress(addressMatch[1].trim());
+        
+        if (shipMatch) {
+            const shipStr = shipMatch[1].trim().toLowerCase();
+            // Handle 15k -> 15000
+            const shipVal = parseInt(shipStr.replace(/k/g, '000').replace(/[^\d]/g, ''));
+            if (!isNaN(shipVal)) setShippingFee(shipVal);
+        }
+
+        if (depositMatch) {
+            const depStr = depositMatch[1].trim().toLowerCase();
+            if (depStr.includes('full') || depStr.includes('chuyển khoản full') || depStr.includes('ckf')) {
+                setHasDeposit('yes');
+                setIsFullDeposit(true);
+            } else {
+                setIsFullDeposit(false);
+                const depVal = parseInt(depStr.replace(/k/g, '000').replace(/[^\d]/g, ''));
+                if (!isNaN(depVal)) {
+                    setHasDeposit('yes');
+                    setDepositAmount(depVal);
+                }
+            }
+        }
     };
 
-    const calculateItemsTotal = () => {
+    const calculateItemsTotal = useCallback(() => {
         return orderItems.reduce((acc, item) => acc + ((item.product?.salePrice || 0) * (Number(item.quantity) || 0)), 0);
-    };
+    }, [orderItems]);
 
-    const totalAmount = calculateItemsTotal() + shippingFee;
+    const totalAmount = useMemo(() => calculateItemsTotal() + shippingFee, [calculateItemsTotal, shippingFee]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -182,8 +232,8 @@ export default function NewOrderPage() {
 
             const orderPayload = {
                 customerName,
-                customerPhone,
-                customerAddress,
+                customerPhone: isOldCustomer ? null : customerPhone,
+                customerAddress: isOldCustomer ? null : customerAddress,
                 shippingFee,
                 hasDeposit: hasDeposit === 'yes',
                 depositAmount: hasDeposit === 'yes' ? depositAmount : null,
@@ -223,6 +273,22 @@ export default function NewOrderPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Quick Paste Section */}
+                <div className="bg-rose-50 p-4 rounded-lg border border-rose-100 space-y-3">
+                    <Label htmlFor="quick-paste" className="flex items-center gap-2 text-rose-800 font-bold">
+                        <FileText className="w-4 h-4" />
+                        DÁN THÔNG TIN NHANH
+                    </Label>
+                    <textarea
+                        id="quick-paste"
+                        className="w-full h-24 p-2 text-sm border rounded-md focus:ring-rose-500 focus:border-rose-500"
+                        placeholder="Dán nội dung đơn hàng vào đây để tự động điền thông tin..."
+                        value={quickPasteText}
+                        onChange={(e) => handleQuickPaste(e.target.value)}
+                    />
+                    <p className="text-[10px] text-rose-400 italic">Hỗ trợ format: Tên người nhận, Sđt, Địa chỉ cũ, Tổng, Đã cọc, Cod, Tiền Ship.</p>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-lg border shadow-sm">
                     <div className="space-y-2">
                         <Label htmlFor="name">Họ Tên Khách Hàng *</Label>
@@ -232,26 +298,43 @@ export default function NewOrderPage() {
                             value={customerName}
                             onChange={(e) => setCustomerName(e.target.value)}
                         />
+                        <div className="flex items-center space-x-2 pt-1">
+                            <input
+                                type="checkbox"
+                                id="old-customer"
+                                className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+                                checked={isOldCustomer}
+                                onChange={(e) => setIsOldCustomer(e.target.checked)}
+                            />
+                            <Label htmlFor="old-customer" className="text-sm font-medium leading-none cursor-pointer">
+                                Khách cũ (Đã có thông tin trên SPX)
+                            </Label>
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="phone">Số Điện Thoại *</Label>
-                        <Input
-                            id="phone"
-                            required
-                            value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
-                        />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="address">Địa Chỉ *</Label>
-                        <Input
-                            id="address"
-                            required
-                            value={customerAddress}
-                            onChange={(e) => setCustomerAddress(e.target.value)}
-                            placeholder="Số nhà, Đường, Phường/Xã, Quận/Huyện, Tỉnh/TP"
-                        />
-                    </div>
+
+                    {!isOldCustomer && (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Số Điện Thoại *</Label>
+                                <Input
+                                    id="phone"
+                                    required={!isOldCustomer}
+                                    value={customerPhone}
+                                    onChange={(e) => setCustomerPhone(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="address">Địa Chỉ *</Label>
+                                <Input
+                                    id="address"
+                                    required={!isOldCustomer}
+                                    value={customerAddress}
+                                    onChange={(e) => setCustomerAddress(e.target.value)}
+                                    placeholder="Số nhà, Đường, Phường/Xã, Quận/Huyện, Tỉnh/TP"
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <div className="bg-white p-6 rounded-lg border shadow-sm space-y-6">
@@ -399,7 +482,17 @@ export default function NewOrderPage() {
                             </div>
                         </div>
 
-                        <div className="mt-8">
+                        <div className="mt-8 space-y-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full flex items-center gap-2"
+                                onClick={() => setIsBillOpen(true)}
+                                disabled={orderItems.length === 0}
+                            >
+                                <FileText className="w-4 h-4" />
+                                XUẤT HÓA ĐƠN (XEM TRƯỚC)
+                            </Button>
                             <Button type="submit" className="w-full text-lg h-12" disabled={isSubmitting}>
                                 {isSubmitting ? 'Đang tạo đơn...' : 'HOÀN TẤT TẠO ĐƠN'}
                             </Button>
@@ -472,6 +565,107 @@ export default function NewOrderPage() {
                                 {isAddingProduct ? 'Đang lưu...' : 'Lưu & Chọn'}
                             </Button>
                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bill Preview Dialog */}
+            <Dialog open={isBillOpen} onOpenChange={setIsBillOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-rose-500" />
+                            Hóa Đơn Bán Hàng
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div id="bill-content" className="p-6 bg-white border rounded-lg space-y-6 text-slate-800">
+                        <div className="text-center border-b pb-4">
+                            <h2 className="text-2xl font-bold uppercase tracking-wider">Hóa Đơn Thanh Toán</h2>
+                            <p className="text-sm text-slate-500 mt-1">{new Date().toLocaleDateString('vi-VN')}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p className="text-slate-500 uppercase text-[10px] font-bold tracking-widest">Khách hàng</p>
+                                <p className="font-semibold text-base">{customerName || 'Chưa nhập tên'}</p>
+                                {!isOldCustomer && (
+                                    <>
+                                        <p>{customerPhone}</p>
+                                        <p className="text-xs text-slate-500 mt-1 italic">{customerAddress}</p>
+                                    </>
+                                )}
+                                    {isOldCustomer && null}
+                            </div>
+                            <div className="text-right">
+                                <p className="text-slate-500 uppercase text-[10px] font-bold tracking-widest">Cửa hàng</p>
+                                <p className="font-semibold">Rim Cưng Cosmetics</p>
+                                <p className="text-xs text-slate-500">Hỗ trợ nhanh: 0333586853</p>
+                            </div>
+                        </div>
+
+                        <div className="border rounded-lg overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 border-b">
+                                    <tr className="text-[11px] uppercase tracking-tight">
+                                        <th className="text-left py-1 px-2">Sản phẩm</th>
+                                        <th className="text-center py-1 px-2 w-10">SL</th>
+                                        <th className="text-right py-1 px-2">Đơn giá</th>
+                                        <th className="text-right py-1 px-2">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-[12px]">
+                                    {orderItems.map((item, idx) => (
+                                        <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50">
+                                            <td className="py-1 px-2 font-medium leading-tight">{item.product?.name}</td>
+                                            <td className="py-1 px-2 text-center">{item.quantity}</td>
+                                            <td className="py-1 px-2 text-right">{formatPrice(item.product?.salePrice || 0)}</td>
+                                            <td className="py-1 px-2 text-right font-semibold">
+                                                {formatPrice((item.product?.salePrice || 0) * (Number(item.quantity) || 0))}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="space-y-1 pt-1.5 border-t text-[12px]">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Tạm tính:</span>
+                                <span>{formatPrice(calculateItemsTotal())}&nbsp;đ</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Phí vận chuyển:</span>
+                                <span>{formatPrice(shippingFee)}&nbsp;đ</span>
+                            </div>
+                            <div className="flex justify-between text-base font-bold border-t pt-1.5 mt-1.5">
+                                <span>Tổng cộng:</span>
+                                <span className="text-rose-600">{formatPrice(calculateItemsTotal() + shippingFee)}&nbsp;đ</span>
+                            </div>
+                            {hasDeposit === 'yes' && (
+                                <>
+                                    <div className="flex justify-between text-emerald-600">
+                                        <span>Đã đặt cọc:</span>
+                                        <span>- {formatPrice(Number(depositAmount || 0))}&nbsp;đ</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm font-bold bg-rose-50 p-1.5 rounded mt-1">
+                                        <span>Còn lại cần thu:</span>
+                                        <span className="text-rose-700">{formatPrice(Math.max(0, calculateItemsTotal() + shippingFee - Number(depositAmount || 0)))}&nbsp;đ</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="text-center pt-6 italic text-slate-400 text-xs gap-1 flex flex-col">
+                            <p>Cảm ơn quý khách đã tin tưởng và ủng hộ!</p>
+                            <p>Vui lòng kiểm tra hàng kỹ trước khi thanh toán.</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                        <Button variant="outline" onClick={() => setIsBillOpen(false)}>Đóng</Button>
+                        <Button className="gap-2" onClick={() => typeof window !== 'undefined' && window.print()}>
+                            <Printer className="w-4 h-4" />
+                            In hóa đơn
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>

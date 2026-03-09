@@ -77,8 +77,8 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                     return;
                 }
 
-                setCustomerName(order.customerName);
-                setCustomerPhone(order.customerPhone);
+                setCustomerName(order.customerName || '');
+                setCustomerPhone(order.customerPhone || '');
                 setCustomerAddress(order.customerAddress || '');
                 setShippingFee(order.shippingFee);
                 setHasDeposit(order.hasDeposit ? 'yes' : 'no');
@@ -93,8 +93,8 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
 
                 // Track initial state
                 setInitialData(JSON.stringify({
-                    customerName: order.customerName,
-                    customerPhone: order.customerPhone,
+                    customerName: order.customerName || '',
+                    customerPhone: order.customerPhone || '',
                     customerAddress: order.customerAddress || '',
                     shippingFee: order.shippingFee,
                     hasDeposit: order.hasDeposit ? 'yes' : 'no',

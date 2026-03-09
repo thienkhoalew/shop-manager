@@ -25,7 +25,7 @@ model Product {
 model Order {
   id              String      @id @default(cuid())
   customerName    String
-  customerPhone   String
+  customerPhone   String?
   customerAddress String?
   
   shippingFee     Float       @default(0)

@@ -12,7 +12,7 @@ import {
   parseISO,
 } from 'date-fns';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
@@ -28,12 +28,26 @@ export default async function Home() {
   let monthlyData: ChartDataPoint[] = [];
 
   try {
-    const [ordersCount, shippingCount, productsCount, doneOrders] = await Promise.all([
+    const now = new Date();
+    const sixMonthsAgo = subMonths(now, 6);
+
+    const [ordersCount, shippingCount, productsCount, totalStats, recentDoneOrders] = await Promise.all([
       prisma.order.count(),
       prisma.order.count({ where: { status: 'SHIPPING' } }),
       prisma.product.count(),
+      prisma.$queryRaw<{ totalrevenue: number | null; totalprofit: number | null }[]>`
+        SELECT 
+          SUM("OrderItem"."salePrice" * "OrderItem"."quantity") as totalrevenue,
+          SUM(("OrderItem"."salePrice" - "OrderItem"."basePrice") * "OrderItem"."quantity") as totalprofit
+        FROM "OrderItem"
+        JOIN "Order" ON "OrderItem"."orderId" = "Order"."id"
+        WHERE "Order"."status" = 'DONE'
+      `,
       prisma.order.findMany({
-        where: { status: 'DONE' },
+        where: { 
+          status: 'DONE',
+          createdAt: { gte: sixMonthsAgo }
+        },
         include: { orderItems: true },
         orderBy: { createdAt: 'asc' },
       }),
@@ -43,16 +57,12 @@ export default async function Home() {
     shippingOrders = shippingCount;
     totalProducts = productsCount;
 
-    // Calculate overall revenue/profit from DONE orders only
-    doneOrders.forEach((order) => {
-      const revenue = order.orderItems.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
-      const cost = order.orderItems.reduce((sum, item) => sum + item.basePrice * item.quantity, 0);
-      totalRevenue += revenue;
-      totalProfit += revenue - cost;
-    });
+    if (totalStats && totalStats[0]) {
+      totalRevenue = Number(totalStats[0].totalrevenue || 0);
+      totalProfit = Number(totalStats[0].totalprofit || 0);
+    }
 
     // --- Build Weekly Data (last 8 weeks) ---
-    const now = new Date();
     const weekMap = new Map<string, { cost: number; profit: number }>();
     for (let i = 7; i >= 0; i--) {
       const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
@@ -60,7 +70,7 @@ export default async function Home() {
       weekMap.set(key, { cost: 0, profit: 0 });
     }
 
-    doneOrders.forEach((order) => {
+    recentDoneOrders.forEach((order) => {
       const weekStart = startOfWeek(new Date(order.createdAt), { weekStartsOn: 1 });
       const key = `${getYear(weekStart)} -W${String(getWeek(weekStart, { weekStartsOn: 1 })).padStart(2, '0')} `;
       if (weekMap.has(key)) {
@@ -86,7 +96,7 @@ export default async function Home() {
       monthMap.set(key, { cost: 0, profit: 0 });
     }
 
-    doneOrders.forEach((order) => {
+    recentDoneOrders.forEach((order) => {
       const key = format(new Date(order.createdAt), 'yyyy-MM');
       if (monthMap.has(key)) {
         const entry = monthMap.get(key)!;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -231,8 +232,14 @@ export default function ProductsPage() {
                                         }}
                                     />
                                     {(imagePreview || formData.imageUrl) && (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={imagePreview || formData.imageUrl || ''} alt="Preview" className="mt-2 max-h-40 object-cover" />
+                                        <div className="relative mt-2 h-40 w-full overflow-hidden rounded-md border">
+                                            <Image
+                                                src={imagePreview || formData.imageUrl || ''}
+                                                alt="Preview"
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
                                     )}
                                 </div>
                                 <div className="flex justify-end space-x-2 pt-4">
@@ -260,14 +267,12 @@ export default function ProductsPage() {
                         <div key={product.id} className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
                             <div className="aspect-square bg-slate-50 relative border-b border-slate-50 flex items-center justify-center overflow-hidden">
                                 {product.imageUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
+                                    <Image
                                         src={product.imageUrl}
                                         alt={product.name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/f8fafc/94a3b8?text=No+Image';
-                                        }}
+                                        fill
+                                        className="object-cover"
+                                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                                     />
                                 ) : (
                                     <div className="flex flex-col items-center justify-center text-slate-300">

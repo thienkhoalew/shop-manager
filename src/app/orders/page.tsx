@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { MapPin, Trash2, Pencil, Copy } from 'lucide-react';
+import { MapPin, Trash2, Pencil, Copy, FileText, Printer } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
 type OrderItem = {
@@ -63,6 +64,8 @@ export default function OrdersPage() {
     const [isUpdateOpen, setIsUpdateOpen] = useState(false);
     const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
     const [confirmPayment, setConfirmPayment] = useState(false);
+    const [billOrder, setBillOrder] = useState<Order | null>(null);
+    const [isBillOpen, setIsBillOpen] = useState(false);
 
     // Filtering states
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -130,7 +133,7 @@ export default function OrdersPage() {
         }
     };
 
-    const formatCurrency = (amt: number) => `${formatPrice(amt)} đ`;
+    const formatCurrency = useCallback((amt: number) => `${formatPrice(amt)}\u00A0đ`, []);
 
     const getStatusStyles = (status: string) => {
         switch (status) {
@@ -158,20 +161,20 @@ export default function OrdersPage() {
         }
     };
 
-    const calculateTotal = (order: Order) => {
+    const calculateTotal = useCallback((order: Order) => {
         const itemsTotal = order.orderItems.reduce((acc, item) => acc + (item.salePrice * item.quantity), 0);
         return itemsTotal + order.shippingFee;
-    };
+    }, []);
 
-    const calculateProfit = (order: Order) => {
+    const calculateProfit = useCallback((order: Order) => {
         return order.orderItems.reduce((acc, item) => acc + ((item.salePrice - item.basePrice) * item.quantity), 0);
-    };
+    }, []);
 
-    const calculateCost = (order: Order) => {
+    const calculateCost = useCallback((order: Order) => {
         return order.orderItems.reduce((acc, item) => acc + (item.basePrice * item.quantity), 0);
-    };
+    }, []);
 
-    const filteredOrders = orders.filter(order => {
+    const filteredOrders = useMemo(() => orders.filter(order => {
         const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
 
         let matchesDate = true;
@@ -181,17 +184,19 @@ export default function OrdersPage() {
         }
 
         return matchesStatus && matchesDate;
-    });
+    }), [orders, statusFilter, dateFilter]);
 
-    const toggleExpand = (orderId: string) => {
-        const newExpanded = new Set(expandedOrders);
-        if (newExpanded.has(orderId)) {
-            newExpanded.delete(orderId);
-        } else {
-            newExpanded.add(orderId);
-        }
-        setExpandedOrders(newExpanded);
-    };
+    const toggleExpand = useCallback((orderId: string) => {
+        setExpandedOrders(prev => {
+            const newExpanded = new Set(prev);
+            if (newExpanded.has(orderId)) {
+                newExpanded.delete(orderId);
+            } else {
+                newExpanded.add(orderId);
+            }
+            return newExpanded;
+        });
+    }, []);
 
     const handleDeleteOrder = async (id: string) => {
         if (!confirm('Bạn có chắc chắn muốn xóa đơn hàng này? Thao tác này không thể hoàn tác.')) return;
@@ -212,10 +217,10 @@ export default function OrdersPage() {
         }
     };
 
-    const handleCopy = (text: string) => {
+    const handleCopy = useCallback((text: string, message: string = 'Đã sao chép') => {
         navigator.clipboard.writeText(text);
-        toast.success('Đã sao chép mã vận đơn');
-    };
+        toast.success(message);
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -286,12 +291,33 @@ export default function OrdersPage() {
                                     <TableRow>
                                         <TableCell className="align-top">
                                             <div className="font-medium">{order.customerName}</div>
-                                            <div className="text-sm text-gray-500">{order.customerPhone}</div>
-                                            {order.customerAddress && (
-                                                <div className="text-xs text-slate-600 mt-1.5 flex items-start gap-1">
+                                            {order.customerPhone ? (
+                                                <div className="text-sm text-gray-500 flex items-center gap-1.5 group">
+                                                    <button
+                                                        onClick={() => handleCopy(order.customerPhone || '', 'Đã sao chép số điện thoại')}
+                                                        className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-rose-500 transition-colors"
+                                                        title="Sao chép số điện thoại"
+                                                    >
+                                                        <Copy className="w-3 h-3" />
+                                                    </button>
+                                                    <span>{order.customerPhone}</span>
+                                                </div>
+                                            ) : null}
+                                            {order.customerAddress ? (
+                                                <div className="text-xs text-slate-600 mt-1.5 flex items-start gap-1 group">
+                                                    <button
+                                                        onClick={() => handleCopy(order.customerAddress || '', 'Đã sao chép địa chỉ')}
+                                                        className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-rose-500 transition-colors shrink-0 -mt-1"
+                                                        title="Sao chép địa chỉ"
+                                                    >
+                                                        <Copy className="w-3 h-3" />
+                                                    </button>
                                                     <MapPin className="w-3.5 h-3.5 mt-0.5 text-rose-400 shrink-0" />
                                                     <span className="leading-relaxed">{order.customerAddress}</span>
                                                 </div>
+                                            ) : null}
+                                            {!order.customerPhone && !order.customerAddress && (
+                                                <div className="text-xs text-slate-400 italic mt-1 font-medium">Khách cũ (SPX)</div>
                                             )}
                                         </TableCell>
                                         <TableCell className="font-medium text-rose-600 whitespace-nowrap">
@@ -326,7 +352,7 @@ export default function OrdersPage() {
                                                 <div className="mt-1 text-xs text-gray-500 flex items-center gap-1.5">
                                                     <span>Mã: {order.trackingCode}</span>
                                                     <button
-                                                        onClick={() => handleCopy(order.trackingCode!)}
+                                                        onClick={() => handleCopy(order.trackingCode!, 'Đã sao chép mã vận đơn')}
                                                         className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-rose-500 transition-colors"
                                                         title="Sao chép"
                                                     >
@@ -361,6 +387,15 @@ export default function OrdersPage() {
                                                 </Link>
                                                 <Button variant="outline" size="sm" onClick={() => handleOpenUpdate(order)}>
                                                     Trạng thái
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center gap-1"
+                                                    onClick={() => { setBillOrder(order); setIsBillOpen(true); }}
+                                                >
+                                                    <FileText className="w-3 h-3" />
+                                                    Hóa đơn
                                                 </Button>
                                                 <button
                                                     onClick={() => handleDeleteOrder(order.id)}
@@ -443,12 +478,33 @@ export default function OrdersPage() {
                             <div className="flex justify-between items-start border-b pb-3">
                                 <div>
                                     <div className="font-medium text-lg">{order.customerName}</div>
-                                    <div className="text-sm text-gray-500">{order.customerPhone}</div>
-                                    {order.customerAddress && (
+                                    {order.customerPhone ? (
+                                        <div className="text-sm text-gray-500 flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => handleCopy(order.customerPhone || '', 'Đã sao chép số điện thoại')}
+                                                className="p-1 bg-slate-50 hover:bg-slate-100 rounded text-gray-400 hover:text-rose-500 transition-colors border border-slate-100"
+                                                title="Sao chép số điện thoại"
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                            </button>
+                                            <span>{order.customerPhone}</span>
+                                        </div>
+                                    ) : null}
+                                    {order.customerAddress ? (
                                         <div className="text-xs text-slate-600 mt-1.5 flex items-start gap-1">
+                                            <button
+                                                onClick={() => handleCopy(order.customerAddress || '', 'Đã sao chép địa chỉ')}
+                                                className="p-1 bg-slate-50 hover:bg-slate-100 rounded text-gray-400 hover:text-rose-500 transition-colors border border-slate-100 shrink-0 -mt-1"
+                                                title="Sao chép địa chỉ"
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                            </button>
                                             <MapPin className="w-3.5 h-3.5 mt-0.5 text-rose-400 shrink-0" />
                                             <span className="leading-relaxed">{order.customerAddress}</span>
                                         </div>
+                                    ) : null}
+                                    {!order.customerPhone && !order.customerAddress && (
+                                        <div className="text-xs text-slate-400 italic mt-1 font-medium">Khách cũ (SPX)</div>
                                     )}
                                 </div>
                                 <div className="text-right">
@@ -501,7 +557,7 @@ export default function OrdersPage() {
                                             Vận đơn: {order.trackingCode}
                                         </div>
                                         <button
-                                            onClick={() => handleCopy(order.trackingCode!)}
+                                            onClick={() => handleCopy(order.trackingCode!, 'Đã sao chép mã vận đơn')}
                                             className="shrink-0 p-1.5 bg-white border rounded shadow-sm hover:text-rose-500 transition-colors"
                                             title="Sao chép"
                                         >
@@ -524,6 +580,15 @@ export default function OrdersPage() {
                                             Sửa
                                         </Button>
                                     </Link>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 text-xs px-3 flex items-center gap-1"
+                                        onClick={() => { setBillOrder(order); setIsBillOpen(true); }}
+                                    >
+                                        <FileText className="w-4 h-4" />
+                                        Hóa đơn
+                                    </Button>
                                     <Button variant="outline" size="sm" className="h-9 text-xs px-3" onClick={() => handleOpenUpdate(order)}>
                                         Trạng thái
                                     </Button>
@@ -587,11 +652,12 @@ export default function OrdersPage() {
 
                     {receiptUrl && (
                         <div className="relative w-full h-full flex items-center justify-center p-4">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <Image
                                 src={receiptUrl}
                                 alt="Biên lai thanh toán"
-                                className="max-w-full max-h-full object-contain shadow-2xl"
+                                fill
+                                className="object-contain"
+                                priority
                             />
                         </div>
                     )}
@@ -654,6 +720,106 @@ export default function OrdersPage() {
                             <Button variant="outline" onClick={() => setIsUpdateOpen(false)}>Hủy</Button>
                             <Button onClick={submitStatusUpdate}>Lưu thay đổi</Button>
                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bill Preview Dialog */}
+            <Dialog open={isBillOpen} onOpenChange={setIsBillOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-rose-500" />
+                            Hóa Đơn Bán Hàng
+                        </DialogTitle>
+                    </DialogHeader>
+                    {billOrder && (
+                        <div id="bill-content" className="p-6 bg-white border rounded-lg space-y-6 text-slate-800">
+                            <div className="text-center border-b pb-4">
+                                <h2 className="text-2xl font-bold uppercase tracking-wider">Hóa Đơn Thanh Toán</h2>
+                                    <p className="text-sm text-slate-500 mt-1">{billOrder.createdAt ? new Date(billOrder.createdAt).toLocaleDateString('vi-VN') : ''}</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p className="text-slate-500 uppercase text-[10px] font-bold tracking-widest">Khách hàng</p>
+                                    <p className="font-semibold text-base">{billOrder.customerName}</p>
+                                    {billOrder.customerPhone && <p>{billOrder.customerPhone}</p>}
+                                    {billOrder.customerAddress && (
+                                        <p className="text-xs text-slate-500 mt-1 italic">{billOrder.customerAddress}</p>
+                                    )}
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-slate-500 uppercase text-[10px] font-bold tracking-widest">Cửa hàng</p>
+                                    <p className="font-semibold">Rim Cưng Cosmetics</p>
+                                    <p className="text-xs text-slate-500">Hỗ trợ nhanh: 0333586853</p>
+                                </div>
+                            </div>
+
+                            <div className="border rounded-lg overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 border-b">
+                                        <tr className="text-[11px] uppercase tracking-tight">
+                                            <th className="text-left py-1 px-2">Sản phẩm</th>
+                                            <th className="text-center py-1 px-2 w-10">SL</th>
+                                            <th className="text-right py-1 px-2">Đơn giá</th>
+                                            <th className="text-right py-1 px-2">Thành tiền</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-[12px]">
+                                        {billOrder.orderItems.map((item) => (
+                                            <tr key={item.id} className="border-b last:border-0 hover:bg-slate-50/50">
+                                                <td className="py-1 px-2 font-medium leading-tight">{item.product.name}</td>
+                                                <td className="py-1 px-2 text-center">{item.quantity}</td>
+                                                <td className="py-1 px-2 text-right">{formatCurrency(item.salePrice)}</td>
+                                                <td className="py-1 px-2 text-right font-semibold">
+                                                    {formatCurrency(item.salePrice * item.quantity)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="space-y-1 pt-1.5 border-t text-[12px]">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Tạm tính:</span>
+                                    <span>{formatCurrency(calculateTotal(billOrder) - billOrder.shippingFee)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Phí vận chuyển:</span>
+                                    <span>{formatCurrency(billOrder.shippingFee)}</span>
+                                </div>
+                                <div className="flex justify-between text-base font-bold border-t pt-1.5 mt-1.5">
+                                    <span>Tổng cộng:</span>
+                                    <span className="text-rose-600">{formatCurrency(calculateTotal(billOrder))}</span>
+                                </div>
+                                {billOrder.hasDeposit && (
+                                    <>
+                                        <div className="flex justify-between text-emerald-600">
+                                            <span>Đã đặt cọc:</span>
+                                            <span>- {formatCurrency(billOrder.depositAmount || 0)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm font-bold bg-rose-50 p-1.5 rounded mt-1">
+                                            <span>Còn lại cần thu:</span>
+                                            <span className="text-rose-700">{formatCurrency(Math.max(0, calculateTotal(billOrder) - (billOrder.depositAmount || 0)))}</span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="text-center pt-6 italic text-slate-400 text-xs gap-1 flex flex-col">
+                                <p>Cảm ơn quý khách đã tin tưởng và ủng hộ!</p>
+                                <p>Vui lòng kiểm tra hàng kỹ trước khi thanh toán.</p>
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                        <Button variant="outline" onClick={() => setIsBillOpen(false)}>Đóng</Button>
+                        <Button className="gap-2" onClick={() => typeof window !== 'undefined' && window.print()}>
+                            <Printer className="w-4 h-4" />
+                            In hóa đơn
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
