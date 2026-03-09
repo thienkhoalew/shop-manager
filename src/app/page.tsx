@@ -12,7 +12,7 @@ import {
   parseISO,
 } from 'date-fns';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
