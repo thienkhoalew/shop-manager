@@ -29,6 +29,10 @@ test('order invoice document contains the expected order summary labels', () => 
   assert.match(invoiceDocument, /Phí vận chuyển/);
 });
 
+test('order invoice document accepts nullable customer phone values from Prisma', () => {
+  assert.match(invoiceDocument, /customerPhone:\s*string\s*\|\s*null/);
+});
+
 test('orders page print action navigates to the dedicated invoice route', () => {
   assert.match(ordersPage, /router\.push\(`\/orders\/\$\{billOrder\.id\}\/invoice`\)/);
   assert.doesNotMatch(ordersPage, /printInvoiceFromElement/);

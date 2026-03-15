@@ -1,4 +1,4 @@
-import { getDisplayCodTotal, getDisplayProductTotal } from '@/lib/order-display';
+﻿import { getDisplayCodTotal, getDisplayProductTotal } from '@/lib/order-display';
 import { formatPrice } from '@/lib/utils';
 
 type InvoiceOrderItem = {
@@ -13,7 +13,7 @@ type InvoiceOrderItem = {
 export type InvoiceOrder = {
     id: string;
     customerName: string;
-    customerPhone: string;
+    customerPhone: string | null;
     customerAddress: string | null;
     shippingFee: number;
     hasDeposit: boolean;
@@ -113,3 +113,4 @@ export function OrderInvoiceDocument({ order }: { order: InvoiceOrder }) {
         </div>
     );
 }
+
