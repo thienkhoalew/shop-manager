@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -124,3 +124,90 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  body > *:not(.invoice-print-shell) {
+    display: none !important;
+  }
+
+  body.invoice-route-print > * {
+    display: none !important;
+  }
+
+  body.invoice-route-print > main {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  body.invoice-route-print > main > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  body.invoice-route-print > main > div > *:not(.invoice-route-root) {
+    display: none !important;
+  }
+
+  .invoice-route-root {
+    display: block !important;
+    min-height: auto !important;
+    background: #fff !important;
+  }
+
+  .invoice-route-root,
+  .invoice-route-root * {
+    visibility: visible !important;
+  }
+
+  .invoice-print-shell {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .invoice-print-shell,
+  .invoice-print-shell * {
+    visibility: visible !important;
+  }
+
+  .invoice-print-shell [data-slot="dialog-close"],
+  .invoice-print-header,
+  .invoice-print-actions,
+  [data-slot="dialog-overlay"] {
+    display: none !important;
+  }
+
+  .invoice-print-card {
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+
+
+

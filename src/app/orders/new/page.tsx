@@ -14,7 +14,10 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/utils';
-import { FileText, Printer } from 'lucide-react';
+import { getDisplayCodTotal, getDisplayProductTotal } from '@/lib/order-display';
+import { getProductSearchResults } from '@/lib/product-search';
+import { printInvoiceFromElement } from '@/lib/print-invoice';
+import { FileText, Printer, Search } from 'lucide-react';
 
 type Product = {
     id: string;
@@ -46,6 +49,8 @@ export default function NewOrderPage() {
     const [isBillOpen, setIsBillOpen] = useState(false);
     const [quickPasteText, setQuickPasteText] = useState('');
     const [isFullDeposit, setIsFullDeposit] = useState(false);
+    const [productSearchQuery, setProductSearchQuery] = useState('');
+    const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
 
     const [isAddProductOpen, setIsAddProductOpen] = useState(false);
     const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -56,6 +61,10 @@ export default function NewOrderPage() {
         description: '',
     });
     const [newProductFile, setNewProductFile] = useState<File | null>(null);
+    const handlePrintBill = useCallback(() => {
+        const billElement = document.getElementById('bill-content');
+        printInvoiceFromElement(billElement, 'Hoa don ban hang');
+    }, []);
 
     useEffect(() => {
         fetch('/api/products')
@@ -140,6 +149,25 @@ export default function NewOrderPage() {
         setOrderItems([...orderItems, { productId, quantity: 1, product }]);
     }, [products, orderItems]);
 
+    const selectedProductIds = useMemo(
+        () => orderItems.map((item) => item.productId),
+        [orderItems]
+    );
+
+    const productSearchResults = useMemo(() => {
+        return getProductSearchResults({
+            products,
+            query: productSearchQuery,
+            selectedProductIds,
+        });
+    }, [productSearchQuery, products, selectedProductIds]);
+
+    const handleSelectSuggestedProduct = useCallback((productId: string) => {
+        addProductToOrder(productId);
+        setProductSearchQuery('');
+        setIsProductSearchOpen(false);
+    }, [addProductToOrder]);
+
     const updateQuantity = useCallback((idx: number, val: string) => {
         const newItems = [...orderItems];
         if (val === '') {
@@ -195,10 +223,23 @@ export default function NewOrderPage() {
     };
 
     const calculateItemsTotal = useCallback(() => {
-        return orderItems.reduce((acc, item) => acc + ((item.product?.salePrice || 0) * (Number(item.quantity) || 0)), 0);
+        return getDisplayProductTotal(
+            orderItems.map((item) => ({
+                salePrice: item.product?.salePrice || 0,
+                quantity: Number(item.quantity) || 0,
+            }))
+        );
     }, [orderItems]);
 
-    const totalAmount = useMemo(() => calculateItemsTotal() + shippingFee, [calculateItemsTotal, shippingFee]);
+    const codAmount = useMemo(() => {
+        return getDisplayCodTotal({
+            items: orderItems.map((item) => ({
+                salePrice: item.product?.salePrice || 0,
+                quantity: Number(item.quantity) || 0,
+            })),
+            depositAmount: hasDeposit === 'yes' ? Number(depositAmount || 0) : 0,
+        });
+    }, [depositAmount, hasDeposit, orderItems]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -342,21 +383,61 @@ export default function NewOrderPage() {
 
                     <div className="space-y-4">
                         <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                            <select
-                                title="Sản phẩm"
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                                onChange={(e) => {
-                                    if (e.target.value) {
-                                        addProductToOrder(e.target.value);
-                                        e.target.value = '';
-                                    }
-                                }}
-                            >
-                                <option value="">-- Chọn sản phẩm để thêm vào đơn --</option>
-                                {products.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name} - {formatPrice(p.salePrice)} đ</option>
-                                ))}
-                            </select>
+                            <div className="relative w-full">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    value={productSearchQuery}
+                                    onChange={(e) => {
+                                        setProductSearchQuery(e.target.value);
+                                        setIsProductSearchOpen(true);
+                                    }}
+                                    onFocus={() => {
+                                        if (productSearchQuery.trim()) {
+                                            setIsProductSearchOpen(true);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        setTimeout(() => setIsProductSearchOpen(false), 100);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (productSearchResults.length > 0) {
+                                                handleSelectSuggestedProduct(productSearchResults[0].id);
+                                            }
+                                        }
+                                        if (e.key === 'Escape') {
+                                            setIsProductSearchOpen(false);
+                                        }
+                                    }}
+                                    placeholder="Tìm sản phẩm để thêm vào đơn..."
+                                    className="pl-9"
+                                />
+                                {isProductSearchOpen && productSearchQuery.trim() && (
+                                    <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-md border bg-white shadow-lg">
+                                        {productSearchResults.length > 0 ? (
+                                            productSearchResults.map((product) => (
+                                                <button
+                                                    key={product.id}
+                                                    type="button"
+                                                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        handleSelectSuggestedProduct(product.id);
+                                                    }}
+                                                >
+                                                    <span className="font-medium text-slate-700">{product.name}</span>
+                                                    <span className="text-xs text-rose-600">{formatPrice(product.salePrice)} đ</span>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-3 py-2 text-sm text-slate-500">
+                                                Không tìm thấy sản phẩm phù hợp
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
 
                             <Button
                                 type="button"
@@ -462,7 +543,7 @@ export default function NewOrderPage() {
                                 <span>Tổng tiền hàng:</span>
                                 <span>{formatPrice(calculateItemsTotal())} đ</span>
                             </div>
-                            <div className="flex justify-between text-gray-600">
+                            <div className="flex justify-between text-xs text-slate-500">
                                 <span>Phí vận chuyển:</span>
                                 <span>{formatPrice(shippingFee)} đ</span>
                             </div>
@@ -475,10 +556,8 @@ export default function NewOrderPage() {
                             )}
 
                             <div className="flex justify-between text-xl font-bold pt-4 border-t mt-4 text-slate-800">
-                                <span>Cần Thu Thêm:</span>
-                                <span>
-                                    {formatPrice(Math.max(0, totalAmount - (hasDeposit === 'yes' ? Number(depositAmount || 0) : 0)))} đ
-                                </span>
+                                <span>Tiền COD:</span>
+                                <span>{formatPrice(codAmount)} đ</span>
                             </div>
                         </div>
 
@@ -571,14 +650,14 @@ export default function NewOrderPage() {
 
             {/* Bill Preview Dialog */}
             <Dialog open={isBillOpen} onOpenChange={setIsBillOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
+                <DialogContent className="invoice-print-shell max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader className="invoice-print-header">
                         <DialogTitle className="flex items-center gap-2">
                             <FileText className="w-5 h-5 text-rose-500" />
                             Hóa Đơn Bán Hàng
                         </DialogTitle>
                     </DialogHeader>
-                    <div id="bill-content" className="p-6 bg-white border rounded-lg space-y-6 text-slate-800">
+                    <div id="bill-content" className="invoice-print-card p-6 bg-white border rounded-lg space-y-6 text-slate-800">
                         <div className="text-center border-b pb-4">
                             <h2 className="text-2xl font-bold uppercase tracking-wider">Hóa Đơn Thanh Toán</h2>
                             <p className="text-sm text-slate-500 mt-1">{new Date().toLocaleDateString('vi-VN')}</p>
@@ -630,29 +709,27 @@ export default function NewOrderPage() {
 
                         <div className="space-y-1 pt-1.5 border-t text-[12px]">
                             <div className="flex justify-between">
-                                <span className="text-slate-500">Tạm tính:</span>
+                                <span className="text-slate-500">Tổng tiền hàng:</span>
                                 <span>{formatPrice(calculateItemsTotal())}&nbsp;đ</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between text-[11px] text-slate-500">
                                 <span className="text-slate-500">Phí vận chuyển:</span>
                                 <span>{formatPrice(shippingFee)}&nbsp;đ</span>
                             </div>
                             <div className="flex justify-between text-base font-bold border-t pt-1.5 mt-1.5">
-                                <span>Tổng cộng:</span>
-                                <span className="text-rose-600">{formatPrice(calculateItemsTotal() + shippingFee)}&nbsp;đ</span>
+                                <span>Tổng tiền hàng:</span>
+                                <span className="text-rose-600">{formatPrice(calculateItemsTotal())}&nbsp;đ</span>
                             </div>
                             {hasDeposit === 'yes' && (
-                                <>
-                                    <div className="flex justify-between text-emerald-600">
-                                        <span>Đã đặt cọc:</span>
-                                        <span>- {formatPrice(Number(depositAmount || 0))}&nbsp;đ</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm font-bold bg-rose-50 p-1.5 rounded mt-1">
-                                        <span>Còn lại cần thu:</span>
-                                        <span className="text-rose-700">{formatPrice(Math.max(0, calculateItemsTotal() + shippingFee - Number(depositAmount || 0)))}&nbsp;đ</span>
-                                    </div>
-                                </>
+                                <div className="flex justify-between text-emerald-600">
+                                    <span>Đã đặt cọc:</span>
+                                    <span>- {formatPrice(Number(depositAmount || 0))}&nbsp;đ</span>
+                                </div>
                             )}
+                            <div className="flex justify-between text-sm font-bold bg-rose-50 p-1.5 rounded mt-1">
+                                <span>Tiền COD:</span>
+                                <span className="text-rose-700">{formatPrice(codAmount)}&nbsp;đ</span>
+                            </div>
                         </div>
 
                         <div className="text-center pt-6 italic text-slate-400 text-xs gap-1 flex flex-col">
@@ -660,9 +737,9 @@ export default function NewOrderPage() {
                             <p>Vui lòng kiểm tra hàng kỹ trước khi thanh toán.</p>
                         </div>
                     </div>
-                    <div className="flex justify-end gap-3 pt-4 border-t">
+                    <div className="invoice-print-actions flex justify-end gap-3 pt-4 border-t">
                         <Button variant="outline" onClick={() => setIsBillOpen(false)}>Đóng</Button>
-                        <Button className="gap-2" onClick={() => typeof window !== 'undefined' && window.print()}>
+                        <Button className="gap-2" onClick={handlePrintBill}>
                             <Printer className="w-4 h-4" />
                             In hóa đơn
                         </Button>

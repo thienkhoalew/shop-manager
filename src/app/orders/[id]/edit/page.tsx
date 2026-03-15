@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,9 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/utils';
+import { getDisplayCodTotal, getDisplayProductTotal } from '@/lib/order-display';
+import { getProductSearchResults } from '@/lib/product-search';
+import { Search } from 'lucide-react';
 
 type Product = {
     id: string;
@@ -47,6 +50,8 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
     const [isSaved, setIsSaved] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [initialData, setInitialData] = useState<string>('');
+    const [productSearchQuery, setProductSearchQuery] = useState('');
+    const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
 
     const [isAddProductOpen, setIsAddProductOpen] = useState(false);
     const [isAddingProduct, setIsAddingProduct] = useState(false);
@@ -227,6 +232,25 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
         setOrderItems([...orderItems, { productId, quantity: 1, product }]);
     };
 
+    const selectedProductIds = useMemo(
+        () => orderItems.map((item) => item.productId),
+        [orderItems]
+    );
+
+    const productSearchResults = useMemo(() => {
+        return getProductSearchResults({
+            products,
+            query: productSearchQuery,
+            selectedProductIds,
+        });
+    }, [productSearchQuery, products, selectedProductIds]);
+
+    const handleSelectSuggestedProduct = (productId: string) => {
+        addProductToOrder(productId);
+        setProductSearchQuery('');
+        setIsProductSearchOpen(false);
+    };
+
     const updateQuantity = (idx: number, val: string) => {
         const newItems = [...orderItems];
         if (val === '') {
@@ -245,10 +269,21 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
     };
 
     const calculateItemsTotal = () => {
-        return orderItems.reduce((acc, item) => acc + ((item.product?.salePrice || 0) * (Number(item.quantity) || 0)), 0);
+        return getDisplayProductTotal(
+            orderItems.map((item) => ({
+                salePrice: item.product?.salePrice || 0,
+                quantity: Number(item.quantity) || 0,
+            }))
+        );
     };
 
-    const totalAmount = calculateItemsTotal() + shippingFee;
+    const codAmount = getDisplayCodTotal({
+        items: orderItems.map((item) => ({
+            salePrice: item.product?.salePrice || 0,
+            quantity: Number(item.quantity) || 0,
+        })),
+        depositAmount: hasDeposit === 'yes' ? Number(depositAmount || 0) : 0,
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -354,21 +389,61 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                     <h2 className="text-xl font-semibold text-slate-800">Sản Phẩm Trong Đơn</h2>
                     <div className="space-y-4">
                         <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                            <select
-                                title="Chọn sản phẩm"
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                                onChange={(e) => {
-                                    if (e.target.value) {
-                                        addProductToOrder(e.target.value);
-                                        e.target.value = '';
-                                    }
-                                }}
-                            >
-                                <option value="">-- Thêm sản phẩm khác --</option>
-                                {products.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name} - {formatPrice(p.salePrice)} đ</option>
-                                ))}
-                            </select>
+                            <div className="relative w-full">
+                                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    value={productSearchQuery}
+                                    onChange={(e) => {
+                                        setProductSearchQuery(e.target.value);
+                                        setIsProductSearchOpen(true);
+                                    }}
+                                    onFocus={() => {
+                                        if (productSearchQuery.trim()) {
+                                            setIsProductSearchOpen(true);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        setTimeout(() => setIsProductSearchOpen(false), 100);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (productSearchResults.length > 0) {
+                                                handleSelectSuggestedProduct(productSearchResults[0].id);
+                                            }
+                                        }
+                                        if (e.key === 'Escape') {
+                                            setIsProductSearchOpen(false);
+                                        }
+                                    }}
+                                    placeholder="Tìm sản phẩm để thêm vào đơn..."
+                                    className="pl-9"
+                                />
+                                {isProductSearchOpen && productSearchQuery.trim() && (
+                                    <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto rounded-md border bg-white shadow-lg">
+                                        {productSearchResults.length > 0 ? (
+                                            productSearchResults.map((product) => (
+                                                <button
+                                                    key={product.id}
+                                                    type="button"
+                                                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        handleSelectSuggestedProduct(product.id);
+                                                    }}
+                                                >
+                                                    <span className="font-medium text-slate-700">{product.name}</span>
+                                                    <span className="text-xs text-rose-600">{formatPrice(product.salePrice)} đ</span>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-3 py-2 text-sm text-slate-500">
+                                                Không tìm thấy sản phẩm phù hợp
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
 
                             <Button
                                 type="button"
@@ -430,12 +505,12 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                     </div>
                     <div className="bg-slate-50 p-6 rounded-lg flex flex-col justify-center border h-full">
                         <div className="space-y-3">
-                            <div className="flex justify-between text-gray-600"><span>Tổng hàng:</span><span>{formatPrice(calculateItemsTotal())} đ</span></div>
-                            <div className="flex justify-between text-gray-600"><span>Phí ship:</span><span>{formatPrice(shippingFee)} đ</span></div>
+                            <div className="flex justify-between text-gray-600"><span>Tổng tiền hàng:</span><span>{formatPrice(calculateItemsTotal())} đ</span></div>
+                            <div className="flex justify-between text-xs text-slate-500"><span>Phí ship:</span><span>{formatPrice(shippingFee)} đ</span></div>
                             {hasDeposit === 'yes' && <div className="flex justify-between text-rose-600 pt-2 border-t"><span>Đã cọc:</span><span>- {formatPrice(Number(depositAmount || 0))} đ</span></div>}
                             <div className="flex justify-between text-xl font-bold pt-4 border-t mt-4 text-slate-800">
-                                <span>Cần Thu:</span>
-                                <span>{formatPrice(Math.max(0, totalAmount - (hasDeposit === 'yes' ? Number(depositAmount || 0) : 0)))} đ</span>
+                                <span>Tiền COD:</span>
+                                <span>{formatPrice(codAmount)} đ</span>
                             </div>
                         </div>
                         <div className="mt-8">

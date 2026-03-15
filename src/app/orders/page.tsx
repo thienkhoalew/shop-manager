@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +31,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { MapPin, Trash2, Pencil, Copy, FileText, Printer } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { getDisplayCodTotal, getDisplayProductTotal } from '@/lib/order-display';
 
 type OrderItem = {
     id: string;
@@ -57,6 +59,7 @@ type Order = {
 };
 
 export default function OrdersPage() {
+    const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [newStatus, setNewStatus] = useState<string>('');
@@ -66,6 +69,10 @@ export default function OrdersPage() {
     const [confirmPayment, setConfirmPayment] = useState(false);
     const [billOrder, setBillOrder] = useState<Order | null>(null);
     const [isBillOpen, setIsBillOpen] = useState(false);
+    const handlePrintBill = useCallback(() => {
+        if (!billOrder) return;
+        router.push(`/orders/${billOrder.id}/invoice`);
+    }, [billOrder, router]);
 
     // Filtering states
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -161,9 +168,15 @@ export default function OrdersPage() {
         }
     };
 
-    const calculateTotal = useCallback((order: Order) => {
-        const itemsTotal = order.orderItems.reduce((acc, item) => acc + (item.salePrice * item.quantity), 0);
-        return itemsTotal + order.shippingFee;
+    const calculateProductTotal = useCallback((order: Order) => {
+        return getDisplayProductTotal(order.orderItems);
+    }, []);
+
+    const calculateCodTotal = useCallback((order: Order) => {
+        return getDisplayCodTotal({
+            items: order.orderItems,
+            depositAmount: order.depositAmount,
+        });
     }, []);
 
     const calculateProfit = useCallback((order: Order) => {
@@ -272,7 +285,7 @@ export default function OrdersPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Khách Hàng</TableHead>
-                            <TableHead>Tổng tiền (chưa trừ cọc)</TableHead>
+                            <TableHead>Tổng tiền hàng</TableHead>
                             <TableHead>Trạng Thái</TableHead>
                             <TableHead>Cọc / Hóa Đơn</TableHead>
                             <TableHead>Hành Động</TableHead>
@@ -320,9 +333,9 @@ export default function OrdersPage() {
                                                 <div className="text-xs text-slate-400 italic mt-1 font-medium">Khách cũ (SPX)</div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="font-medium text-rose-600 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                {formatCurrency(calculateTotal(order))}
+                                        <TableCell className="whitespace-nowrap">
+                                            <div className="flex items-center gap-2 font-medium text-rose-600">
+                                                {formatCurrency(calculateProductTotal(order))}
                                                 <button
                                                     onClick={() => toggleExpand(order.id)}
                                                     className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
@@ -342,6 +355,9 @@ export default function OrdersPage() {
                                                         <polyline points="6 9 12 15 18 9"></polyline>
                                                     </svg>
                                                 </button>
+                                            </div>
+                                            <div className="mt-1 text-[11px] text-slate-500">
+                                                Ship: {formatCurrency(order.shippingFee)}
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -434,7 +450,7 @@ export default function OrdersPage() {
                                                             <div className="space-y-1 text-gray-600">
                                                                 <div className="flex justify-between">
                                                                     <span>Tổng tiền hàng:</span>
-                                                                    <span>{formatCurrency(calculateTotal(order) - order.shippingFee)}</span>
+                                                                    <span>{formatCurrency(calculateProductTotal(order))}</span>
                                                                 </div>
                                                                 <div className="flex justify-between">
                                                                     <span>Phí ship:</span>
@@ -449,8 +465,8 @@ export default function OrdersPage() {
                                                                     <span>{formatCurrency(calculateProfit(order))}</span>
                                                                 </div>
                                                                 <div className="flex justify-between font-bold text-rose-600 pt-1 border-t border-slate-200 mt-1">
-                                                                    <span>Cần Thu:</span>
-                                                                    <span>{formatCurrency(Math.max(0, calculateTotal(order) - (order.depositAmount || 0)))}</span>
+                                                                    <span>Tiền COD:</span>
+                                                                    <span>{formatCurrency(calculateCodTotal(order))}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -509,7 +525,7 @@ export default function OrdersPage() {
                                 </div>
                                 <div className="text-right">
                                     <div className="flex items-center justify-end gap-1">
-                                        <div className="font-bold text-rose-600">{formatCurrency(calculateTotal(order))}</div>
+                                        <div className="font-bold text-rose-600">{formatCurrency(calculateProductTotal(order))}</div>
                                         <button
                                             onClick={() => toggleExpand(order.id)}
                                             className="text-gray-400 p-1"
@@ -518,6 +534,9 @@ export default function OrdersPage() {
                                                 <polyline points="6 9 12 15 18 9"></polyline>
                                             </svg>
                                         </button>
+                                    </div>
+                                    <div className="mt-1 text-[11px] text-slate-500">
+                                        Ship: {formatCurrency(order.shippingFee)}
                                     </div>
                                     <div className="mt-1">
                                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${getStatusStyles(order.status)}`}>
@@ -528,71 +547,72 @@ export default function OrdersPage() {
                             </div>
 
                             <div className="space-y-3 pt-2">
-                                <div className="text-sm flex items-center justify-between">
-                                    <div>
-                                        <span className="text-gray-500">Trạng thái cọc: </span>
-                                        {order.hasDeposit ? (
-                                            <span className="text-rose-600 font-medium">
-                                                Đã cọc {formatCurrency(order.depositAmount || 0)}
-                                            </span>
-                                        ) : (
-                                            <span className="text-gray-500 uppercase text-[10px] font-bold tracking-wider">Chưa cọc</span>
-                                        )}
+                                <div className="flex items-center justify-between gap-4 text-sm">
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-gray-500">Đã cọc:</span>
+                                        <span className="font-medium text-rose-600">{formatCurrency(order.depositAmount || 0)}</span>
                                     </div>
-                                    {order.hasDeposit && order.receiptImage && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 p-0 h-auto"
-                                            onClick={() => { setReceiptUrl(order.receiptImage); setReceiptDialogOpen(true); }}
-                                        >
-                                            Xem biên lai
-                                        </Button>
-                                    )}
+                                    <div className="flex items-center gap-1 text-right">
+                                        <span className="text-gray-500">Tiền COD:</span>
+                                        <span className="font-medium text-rose-600">{formatCurrency(calculateCodTotal(order))}</span>
+                                    </div>
                                 </div>
-
-                                {order.trackingCode && (
-                                    <div className="p-2 bg-slate-50 border border-slate-100 rounded-md flex items-center justify-between gap-3">
-                                        <div className="text-xs font-medium text-rose-600 break-all">
-                                            Vận đơn: {order.trackingCode}
-                                        </div>
-                                        <button
-                                            onClick={() => handleCopy(order.trackingCode!, 'Đã sao chép mã vận đơn')}
-                                            className="shrink-0 p-1.5 bg-white border rounded shadow-sm hover:text-rose-500 transition-colors"
-                                            title="Sao chép"
-                                        >
-                                            <Copy className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                )}
-
-                                <div className="flex gap-2 items-center justify-end pt-2 border-t border-slate-50">
-                                    <button
-                                        onClick={() => handleDeleteOrder(order.id)}
-                                        className="p-2 text-slate-400 hover:text-red-500 transition-colors border rounded-md"
-                                        title="Xóa đơn"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                    <Link href={`/orders/${order.id}/edit`}>
-                                        <Button variant="outline" size="sm" className="h-9 text-xs px-3 flex items-center gap-1">
-                                            <Pencil className="w-4 h-4" />
-                                            Sửa
-                                        </Button>
-                                    </Link>
+                                {order.hasDeposit && order.receiptImage && (
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
                                         size="sm"
-                                        className="h-9 text-xs px-3 flex items-center gap-1"
-                                        onClick={() => { setBillOrder(order); setIsBillOpen(true); }}
+                                        className="h-auto p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                        onClick={() => {
+                                            setReceiptUrl(order.receiptImage);
+                                            setReceiptDialogOpen(true);
+                                        }}
                                     >
-                                        <FileText className="w-4 h-4" />
-                                        Hóa đơn
+                                        Xem biên lai
                                     </Button>
-                                    <Button variant="outline" size="sm" className="h-9 text-xs px-3" onClick={() => handleOpenUpdate(order)}>
-                                        Trạng thái
-                                    </Button>
+                                )}
+                            </div>
+
+                            {order.trackingCode && (
+                                <div className="p-2 bg-slate-50 border border-slate-100 rounded-md flex items-center justify-between gap-3">
+                                    <div className="text-xs font-medium text-rose-600 break-all">
+                                        Vận đơn: {order.trackingCode}
+                                    </div>
+                                    <button
+                                        onClick={() => handleCopy(order.trackingCode!, 'Đã sao chép mã vận đơn')}
+                                        className="shrink-0 p-1.5 bg-white border rounded shadow-sm hover:text-rose-500 transition-colors"
+                                        title="Sao chép"
+                                    >
+                                        <Copy className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
+                            )}
+
+                            <div className="flex items-center justify-end gap-2 border-t border-slate-50 pt-2">
+                                <button
+                                    onClick={() => handleDeleteOrder(order.id)}
+                                    className="p-2 text-slate-400 hover:text-red-500 transition-colors border rounded-md"
+                                    title="Xóa đơn"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                                <Link href={`/orders/${order.id}/edit`}>
+                                    <Button variant="outline" size="sm" className="h-9 text-xs px-3 flex items-center gap-1">
+                                        <Pencil className="w-4 h-4" />
+                                        Sửa
+                                    </Button>
+                                </Link>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 text-xs px-3 flex items-center gap-1"
+                                    onClick={() => { setBillOrder(order); setIsBillOpen(true); }}
+                                >
+                                    <FileText className="w-4 h-4" />
+                                    Hóa đơn
+                                </Button>
+                                <Button variant="outline" size="sm" className="h-9 text-xs px-3" onClick={() => handleOpenUpdate(order)}>
+                                    Trạng thái
+                                </Button>
                             </div>
 
                             {expandedOrders.has(order.id) && (
@@ -614,9 +634,9 @@ export default function OrdersPage() {
                                     </div>
                                     <div className="flex justify-between text-gray-600 px-1">
                                         <span>Tổng tiền hàng:</span>
-                                        <span>{formatCurrency(calculateTotal(order) - order.shippingFee)}</span>
+                                        <span>{formatCurrency(calculateProductTotal(order))}</span>
                                     </div>
-                                    <div className="flex justify-between text-gray-600 px-1">
+                                    <div className="flex justify-between text-xs text-slate-500 px-1">
                                         <span>Phí vận chuyển:</span>
                                         <span>{formatCurrency(order.shippingFee)}</span>
                                     </div>
@@ -629,8 +649,8 @@ export default function OrdersPage() {
                                         <span>{formatCurrency(calculateProfit(order))}</span>
                                     </div>
                                     <div className="flex justify-between font-bold text-emerald-600 px-1 pt-2 border-t border-slate-100">
-                                        <span>Cần Thu Thêm:</span>
-                                        <span>{formatCurrency(Math.max(0, calculateTotal(order) - (order.depositAmount || 0)))}</span>
+                                        <span>Tiền COD:</span>
+                                        <span>{formatCurrency(calculateCodTotal(order))}</span>
                                     </div>
                                 </div>
                             )}
@@ -726,15 +746,15 @@ export default function OrdersPage() {
 
             {/* Bill Preview Dialog */}
             <Dialog open={isBillOpen} onOpenChange={setIsBillOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
+                <DialogContent className="invoice-print-shell max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader className="invoice-print-header">
                         <DialogTitle className="flex items-center gap-2">
                             <FileText className="w-5 h-5 text-rose-500" />
                             Hóa Đơn Bán Hàng
                         </DialogTitle>
                     </DialogHeader>
                     {billOrder && (
-                        <div id="bill-content" className="p-6 bg-white border rounded-lg space-y-6 text-slate-800">
+                        <div id="bill-content" className="invoice-print-card p-6 bg-white border rounded-lg space-y-6 text-slate-800">
                             <div className="text-center border-b pb-4">
                                 <h2 className="text-2xl font-bold uppercase tracking-wider">Hóa Đơn Thanh Toán</h2>
                                     <p className="text-sm text-slate-500 mt-1">{billOrder.createdAt ? new Date(billOrder.createdAt).toLocaleDateString('vi-VN') : ''}</p>
@@ -783,29 +803,27 @@ export default function OrdersPage() {
 
                             <div className="space-y-1 pt-1.5 border-t text-[12px]">
                                 <div className="flex justify-between">
-                                    <span className="text-slate-500">Tạm tính:</span>
-                                    <span>{formatCurrency(calculateTotal(billOrder) - billOrder.shippingFee)}</span>
+                                    <span className="text-slate-500">Tổng tiền hàng:</span>
+                                    <span>{formatCurrency(calculateProductTotal(billOrder))}</span>
                                 </div>
-                                <div className="flex justify-between">
+                                <div className="flex justify-between text-[11px] text-slate-500">
                                     <span className="text-slate-500">Phí vận chuyển:</span>
                                     <span>{formatCurrency(billOrder.shippingFee)}</span>
                                 </div>
                                 <div className="flex justify-between text-base font-bold border-t pt-1.5 mt-1.5">
-                                    <span>Tổng cộng:</span>
-                                    <span className="text-rose-600">{formatCurrency(calculateTotal(billOrder))}</span>
+                                    <span>Tổng tiền hàng:</span>
+                                    <span className="text-rose-600">{formatCurrency(calculateProductTotal(billOrder))}</span>
                                 </div>
                                 {billOrder.hasDeposit && (
-                                    <>
-                                        <div className="flex justify-between text-emerald-600">
-                                            <span>Đã đặt cọc:</span>
-                                            <span>- {formatCurrency(billOrder.depositAmount || 0)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm font-bold bg-rose-50 p-1.5 rounded mt-1">
-                                            <span>Còn lại cần thu:</span>
-                                            <span className="text-rose-700">{formatCurrency(Math.max(0, calculateTotal(billOrder) - (billOrder.depositAmount || 0)))}</span>
-                                        </div>
-                                    </>
+                                    <div className="flex justify-between text-emerald-600">
+                                        <span>Đã đặt cọc:</span>
+                                        <span>- {formatCurrency(billOrder.depositAmount || 0)}</span>
+                                    </div>
                                 )}
+                                <div className="flex justify-between text-sm font-bold bg-rose-50 p-1.5 rounded mt-1">
+                                    <span>Tiền COD:</span>
+                                    <span className="text-rose-700">{formatCurrency(calculateCodTotal(billOrder))}</span>
+                                </div>
                             </div>
 
                             <div className="text-center pt-6 italic text-slate-400 text-xs gap-1 flex flex-col">
@@ -814,9 +832,9 @@ export default function OrdersPage() {
                             </div>
                         </div>
                     )}
-                    <div className="flex justify-end gap-3 pt-4 border-t">
+                    <div className="invoice-print-actions flex justify-end gap-3 pt-4 border-t">
                         <Button variant="outline" onClick={() => setIsBillOpen(false)}>Đóng</Button>
-                        <Button className="gap-2" onClick={() => typeof window !== 'undefined' && window.print()}>
+                        <Button className="gap-2" onClick={handlePrintBill}>
                             <Printer className="w-4 h-4" />
                             In hóa đơn
                         </Button>
