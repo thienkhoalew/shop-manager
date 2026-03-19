@@ -3,19 +3,19 @@ import { SafeDashboardCharts } from '@/components/SafeDashboardCharts';
 import { type ChartDataPoint } from '@/components/DashboardCharts';
 import {
   format,
-  startOfWeek,
   getWeek,
   getYear,
-  startOfMonth,
-  subWeeks,
-  subMonths,
   parseISO,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+  subWeeks,
 } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
+  return `${new Intl.NumberFormat('vi-VN').format(value)} đ`;
 }
 
 export default async function Home() {
@@ -36,7 +36,7 @@ export default async function Home() {
       prisma.order.count({ where: { status: 'SHIPPING' } }),
       prisma.product.count(),
       prisma.$queryRaw<{ totalrevenue: number | null; totalprofit: number | null }[]>`
-        SELECT 
+        SELECT
           SUM("OrderItem"."salePrice" * "OrderItem"."quantity") as totalrevenue,
           SUM(("OrderItem"."salePrice" - "OrderItem"."basePrice") * "OrderItem"."quantity") as totalprofit
         FROM "OrderItem"
@@ -44,9 +44,9 @@ export default async function Home() {
         WHERE "Order"."status" = 'DONE'
       `,
       prisma.order.findMany({
-        where: { 
+        where: {
           status: 'DONE',
-          createdAt: { gte: sixMonthsAgo }
+          createdAt: { gte: sixMonthsAgo },
         },
         include: { orderItems: true },
         orderBy: { createdAt: 'asc' },
@@ -57,29 +57,29 @@ export default async function Home() {
     shippingOrders = shippingCount;
     totalProducts = productsCount;
 
-    if (totalStats && totalStats[0]) {
+    if (totalStats?.[0]) {
       totalRevenue = Number(totalStats[0].totalrevenue || 0);
       totalProfit = Number(totalStats[0].totalprofit || 0);
     }
 
-    // --- Build Weekly Data (last 8 weeks) ---
     const weekMap = new Map<string, { cost: number; profit: number }>();
-    for (let i = 7; i >= 0; i--) {
+    for (let i = 7; i >= 0; i -= 1) {
       const weekStart = startOfWeek(subWeeks(now, i), { weekStartsOn: 1 });
-      const key = `${getYear(weekStart)} -W${String(getWeek(weekStart, { weekStartsOn: 1 })).padStart(2, '0')} `;
+      const key = `${getYear(weekStart)}-W${String(getWeek(weekStart, { weekStartsOn: 1 })).padStart(2, '0')}`;
       weekMap.set(key, { cost: 0, profit: 0 });
     }
 
     recentDoneOrders.forEach((order) => {
       const weekStart = startOfWeek(new Date(order.createdAt), { weekStartsOn: 1 });
-      const key = `${getYear(weekStart)} -W${String(getWeek(weekStart, { weekStartsOn: 1 })).padStart(2, '0')} `;
-      if (weekMap.has(key)) {
-        const entry = weekMap.get(key)!;
-        order.orderItems.forEach((item) => {
-          entry.cost += item.basePrice * item.quantity;
-          entry.profit += (item.salePrice - item.basePrice) * item.quantity;
-        });
-      }
+      const key = `${getYear(weekStart)}-W${String(getWeek(weekStart, { weekStartsOn: 1 })).padStart(2, '0')}`;
+
+      if (!weekMap.has(key)) return;
+
+      const entry = weekMap.get(key)!;
+      order.orderItems.forEach((item) => {
+        entry.cost += item.basePrice * item.quantity;
+        entry.profit += (item.salePrice - item.basePrice) * item.quantity;
+      });
     });
 
     weeklyData = Array.from(weekMap.entries()).map(([key, val]) => ({
@@ -88,9 +88,8 @@ export default async function Home() {
       profit: Math.round(val.profit),
     }));
 
-    // --- Build Monthly Data (last 6 months) ---
     const monthMap = new Map<string, { cost: number; profit: number }>();
-    for (let i = 5; i >= 0; i--) {
+    for (let i = 5; i >= 0; i -= 1) {
       const monthStart = startOfMonth(subMonths(now, i));
       const key = format(monthStart, 'yyyy-MM');
       monthMap.set(key, { cost: 0, profit: 0 });
@@ -98,13 +97,14 @@ export default async function Home() {
 
     recentDoneOrders.forEach((order) => {
       const key = format(new Date(order.createdAt), 'yyyy-MM');
-      if (monthMap.has(key)) {
-        const entry = monthMap.get(key)!;
-        order.orderItems.forEach((item) => {
-          entry.cost += item.basePrice * item.quantity;
-          entry.profit += (item.salePrice - item.basePrice) * item.quantity;
-        });
-      }
+
+      if (!monthMap.has(key)) return;
+
+      const entry = monthMap.get(key)!;
+      order.orderItems.forEach((item) => {
+        entry.cost += item.basePrice * item.quantity;
+        entry.profit += (item.salePrice - item.basePrice) * item.quantity;
+      });
     });
 
     monthlyData = Array.from(monthMap.entries()).map(([key, val]) => ({
@@ -113,45 +113,46 @@ export default async function Home() {
       profit: Math.round(val.profit),
     }));
   } catch (error) {
-    const err = error as Error;
-    console.error('Dashboard error:', err);
+    console.error('Dashboard error:', error);
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-800">Tổng Quan</h1>
+    <div className="space-y-6 md:space-y-8">
+      <section className="surface-soft overflow-hidden px-5 py-5 sm:px-6 md:px-8">
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
+          <div className="surface-panel p-5">
+            <p className="text-sm text-muted-foreground">Tổng đơn hàng</p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-primary">{totalOrders}</p>
+          </div>
+          <div className="surface-panel p-5">
+            <p className="text-sm text-muted-foreground">Đơn đang giao</p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-foreground">{shippingOrders}</p>
+          </div>
+          <div className="surface-panel p-5 col-span-2 sm:col-span-1">
+            <p className="text-sm text-muted-foreground">Sản phẩm</p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-foreground">{totalProducts}</p>
+          </div>
+        </div>
+      </section>
 
-      {/* Row 1: Order & product counts */}
-      <div className="grid gap-4 grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow p-6">
-          <p className="text-sm font-medium text-slate-500">Tổng Đơn Hàng</p>
-          <p className="text-3xl font-bold text-rose-600 mt-1">{totalOrders}</p>
+      <section className="grid gap-4 sm:grid-cols-2">
+        <div className="surface-panel p-5 sm:p-6">
+          <p className="text-sm text-muted-foreground">Tổng doanh thu</p>
+          <p className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-primary sm:text-3xl">
+            {formatCurrency(totalRevenue)}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">Chỉ tính đơn đã hoàn thành</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow p-6">
-          <p className="text-sm font-medium text-slate-500">Đơn Đang Giao</p>
-          <p className="text-3xl font-bold text-amber-500 mt-1">{shippingOrders}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow p-6">
-          <p className="text-sm font-medium text-slate-500">Sản Phẩm</p>
-          <p className="text-3xl font-bold text-indigo-600 mt-1">{totalProducts}</p>
-        </div>
-      </div>
 
-      {/* Row 2: Revenue & Profit summary */}
-      <div className="grid gap-4 grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow p-6">
-          <p className="text-sm font-medium text-slate-500">Tổng Doanh Thu</p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(totalRevenue)}</p>
-          <p className="text-xs text-slate-400 mt-1">Chỉ tính đơn đã hoàn thành</p>
+        <div className="surface-panel p-5 sm:p-6">
+          <p className="text-sm text-muted-foreground">Tổng lợi nhuận</p>
+          <p className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground sm:text-3xl">
+            {formatCurrency(totalProfit)}
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">Chỉ tính đơn đã hoàn thành</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow p-6">
-          <p className="text-sm font-medium text-slate-500">Tổng Lợi Nhuận</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(totalProfit)}</p>
-          <p className="text-xs text-slate-400 mt-1">Chỉ tính đơn đã hoàn thành</p>
-        </div>
-      </div>
+      </section>
 
-      {/* Row 3: Chart */}
       <SafeDashboardCharts weeklyData={weeklyData} monthlyData={monthlyData} />
     </div>
   );

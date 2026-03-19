@@ -9,6 +9,7 @@ const routePrintMode = readFileSync('src/components/orders/invoice-route-print-m
 const ordersPage = readFileSync('src/app/orders/page.tsx', 'utf8');
 const invoicePrintControlsBytes = readFileSync('src/components/orders/invoice-print-controls.tsx');
 const globalsCss = readFileSync('src/app/globals.css', 'utf8');
+const layout = readFileSync('src/app/layout.tsx', 'utf8');
 
 test('invoice route renders order invoice document and order data lookup', () => {
   assert.match(invoiceRoutePage, /prisma\.order\.findUnique/);
@@ -38,12 +39,13 @@ test('orders page print action navigates to the dedicated invoice route', () => 
   assert.doesNotMatch(ordersPage, /printInvoiceFromElement/);
 });
 
-test('orders mobile card shows deposit and cod on the same info row', () => {
-  assert.doesNotMatch(ordersPage, /Tráº¡ng thÃ¡i cá»c/);
-  assert.match(ordersPage, /Đã cọc:<\/span>/);
+test('orders mobile card shows deposit and cod in summary tiles without duplicate inline row', () => {
+  assert.doesNotMatch(ordersPage, /Trạng thái cọc/);
+  assert.match(ordersPage, /Tiền COD/);
+  assert.match(ordersPage, /Đặt cọc/);
   assert.match(ordersPage, /\{formatCurrency\(order\.depositAmount \|\| 0\)\}/);
-  assert.match(ordersPage, /Tiền COD:<\/span>/);
   assert.match(ordersPage, /\{formatCurrency\(calculateCodTotal\(order\)\)\}/);
+  assert.doesNotMatch(ordersPage, /flex items-center justify-between gap-4 rounded-\[1\.1rem\] border border-border\/60 bg-white\/72 px-4 py-3 text-sm/);
 });
 
 test('invoice print controls source is valid utf-8', () => {
@@ -57,8 +59,10 @@ test('invoice route enables dedicated print mode class on body', () => {
 });
 
 test('globals.css keeps route print wrappers visible during invoice printing', () => {
+  assert.match(layout, /<body[\s\S]*<div className="relative flex min-h-\[100dvh\]/);
   assert.match(globalsCss, /body\.invoice-route-print > \* \{\s*display:\s*none !important;/);
-  assert.match(globalsCss, /body\.invoice-route-print > main \{\s*display:\s*block !important;/);
-  assert.match(globalsCss, /body\.invoice-route-print > main > div > \*:not\(\.invoice-route-root\)/);
+  assert.match(globalsCss, /body\.invoice-route-print > div \{\s*display:\s*flex !important;/);
+  assert.match(globalsCss, /body\.invoice-route-print > div > main \{\s*display:\s*block !important;/);
+  assert.match(globalsCss, /body\.invoice-route-print > div > main > div > \*:not\(\.invoice-route-root\)/);
   assert.match(globalsCss, /\.invoice-route-root \{\s*display:\s*block !important;/);
 });
