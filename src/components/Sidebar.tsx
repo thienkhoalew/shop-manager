@@ -43,7 +43,7 @@ export function Sidebar() {
                   className={[
                     'group flex items-center gap-3 rounded-[1.35rem] border px-4 py-3 text-sm transition-all duration-200',
                     isActive
-                      ? 'border-white/10 bg-[linear-gradient(135deg,rgba(255,161,70,0.95),rgba(235,117,38,0.92))] text-primary-foreground shadow-[0_18px_32px_-18px_rgba(238,123,41,0.6)]'
+                      ? 'border-white/10 bg-[linear-gradient(135deg,rgba(220,88,141,0.97),rgba(196,65,121,0.93))] text-primary-foreground shadow-[0_18px_32px_-18px_rgba(207,74,128,0.6)]'
                       : 'border-transparent text-white/72 hover:border-white/10 hover:bg-white/6 hover:text-white',
                   ].join(' ')}
                 >
@@ -82,7 +82,7 @@ export function Sidebar() {
       </aside>
 
       <div className="md:hidden">
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-28 bg-gradient-to-t from-[#f8f4ec] via-[#f8f4ec]/92 to-transparent" />
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-28 bg-gradient-to-t from-[#fcf4f8] via-[#fcf4f8]/92 to-transparent" />
         <nav className="mobile-safe-pb fixed inset-x-0 bottom-0 z-50 px-3">
           <div className="mx-auto mb-2 flex max-w-md items-center justify-between gap-2 rounded-[1.75rem] border border-white/80 bg-[rgba(35,47,71,0.92)] px-2 py-2 shadow-[0_18px_40px_-22px_rgba(32,40,61,0.48)] backdrop-blur-md">
             {navItems.map((item) => {
@@ -98,7 +98,7 @@ export function Sidebar() {
                   className={[
                     'flex min-w-0 flex-1 flex-col items-center justify-center rounded-[1.15rem] px-2 py-2.5 text-center transition-all duration-200 active:scale-[0.98]',
                     isActive
-                      ? 'bg-[linear-gradient(135deg,rgba(255,161,70,0.98),rgba(235,117,38,0.96))] text-primary-foreground shadow-[0_14px_24px_-18px_rgba(238,123,41,0.7)]'
+                      ? 'bg-[linear-gradient(135deg,rgba(220,88,141,0.98),rgba(196,65,121,0.96))] text-primary-foreground shadow-[0_14px_24px_-18px_rgba(207,74,128,0.7)]'
                       : 'text-white/62 hover:bg-white/8 hover:text-white',
                   ].join(' ')}
                 >

@@ -326,7 +326,7 @@ export default function ProductsPage() {
               key={product.id}
               className="surface-panel group overflow-hidden p-0 transition-transform duration-200 hover:-translate-y-1"
             >
-              <div className="relative aspect-[0.92] overflow-hidden rounded-t-[1.65rem] bg-[linear-gradient(180deg,rgba(255,247,234,0.96),rgba(243,236,224,0.88))]">
+              <div className="relative aspect-[0.92] overflow-hidden rounded-t-[1.65rem] bg-[linear-gradient(180deg,rgba(255,245,249,0.98),rgba(246,234,240,0.9))]">
                 {product.imageUrl ? (
                   <Image
                     src={product.imageUrl}
@@ -375,7 +375,7 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[1.3rem] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(255,238,215,0.9))] px-4 py-3">
+                <div className="rounded-[1.3rem] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,249,252,0.98),rgba(250,231,240,0.9))] px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Giá bán</p>
                   <p className="mt-1 text-xl font-semibold tracking-[-0.04em] text-primary">
                     {formatPrice(product.salePrice)} đ

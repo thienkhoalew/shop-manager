@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ee7b29",
+  themeColor: "#cf4a80",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -48,7 +48,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <div className="relative flex min-h-[100dvh] overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,203,118,0.2),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(255,158,96,0.12),transparent_28%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(243,165,198,0.22),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(223,103,152,0.14),transparent_28%)]" />
           <Sidebar />
           <main className="min-h-[100dvh] flex-1 overflow-y-auto pb-28 md:pb-0">
             <div className="mx-auto flex min-h-[100dvh] w-full max-w-[1480px] flex-col px-4 pb-10 pt-4 sm:px-5 md:px-8 md:pt-8">

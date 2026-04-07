@@ -213,7 +213,7 @@ export default function OrdersPage() {
 
   const getStatusStyles = (status: string) =>
     status === 'WAITING_FOR_GOODS'
-      ? 'border-amber-200/80 bg-amber-50 text-amber-700'
+      ? 'border-pink-200/80 bg-pink-50 text-pink-700'
       : status === 'SHIPPING'
         ? 'border-sky-200/80 bg-sky-50 text-sky-700'
         : status === 'DONE'
@@ -312,7 +312,7 @@ export default function OrdersPage() {
 
       <div className="surface-panel hidden overflow-hidden p-0 md:block">
         <Table>
-          <TableHeader className="bg-[#fff8ee]">
+          <TableHeader className="bg-[#fff4f8]">
             <TableRow>
               <TableHead>Khách hàng</TableHead>
               <TableHead>Tổng tiền hàng</TableHead>
@@ -346,7 +346,7 @@ export default function OrdersPage() {
                       Ship: {formatCurrency(order.shippingFee)}
                     </div>
                     {expandedOrders.has(order.id) ? (
-                      <div className="mt-3 space-y-2 rounded-[1.25rem] border border-border/70 bg-[#fffaf3] p-3 text-xs">
+                      <div className="mt-3 space-y-2 rounded-[1.25rem] border border-border/70 bg-[#fff7fb] p-3 text-xs">
                         {order.orderItems.map((item) => (
                           <div key={item.id} className="flex justify-between gap-3">
                             <span className="text-slate-600">
@@ -468,7 +468,7 @@ export default function OrdersPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1.35rem] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(255,238,215,0.9))] px-4 py-3">
+                <div className="rounded-[1.35rem] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,249,252,0.98),rgba(250,231,240,0.9))] px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Tiền COD</p>
                   <p className="mt-2 text-lg font-semibold tracking-[-0.03em] text-primary">
                     {formatCurrency(calculateCodTotal(order))}
@@ -524,7 +524,7 @@ export default function OrdersPage() {
 
               {expandedOrders.has(order.id) ? (
                 <div className="space-y-3 border-t border-border/60 pt-4 text-sm">
-                  <div className="space-y-2 rounded-[1.35rem] border border-border/70 bg-[#fffaf3] p-3">
+                  <div className="space-y-2 rounded-[1.35rem] border border-border/70 bg-[#fff7fb] p-3">
                     {order.orderItems.map((item) => (
                       <div
                         key={item.id}

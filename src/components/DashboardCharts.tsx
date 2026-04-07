@@ -85,7 +85,7 @@ export function DashboardCharts({ weeklyData, monthlyData }: DashboardChartsProp
             className={[
               'rounded-full px-4 py-2 text-sm font-medium transition-all',
               viewMode === 'week'
-                ? 'bg-white text-primary shadow-[0_10px_24px_-18px_rgba(238,123,41,0.45)]'
+                ? 'bg-white text-primary shadow-[0_10px_24px_-18px_rgba(207,74,128,0.46)]'
                 : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
             onClick={() => setViewMode('week')}
@@ -96,7 +96,7 @@ export function DashboardCharts({ weeklyData, monthlyData }: DashboardChartsProp
             className={[
               'rounded-full px-4 py-2 text-sm font-medium transition-all',
               viewMode === 'month'
-                ? 'bg-white text-primary shadow-[0_10px_24px_-18px_rgba(238,123,41,0.45)]'
+                ? 'bg-white text-primary shadow-[0_10px_24px_-18px_rgba(207,74,128,0.46)]'
                 : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
             onClick={() => setViewMode('month')}
@@ -126,7 +126,7 @@ export function DashboardCharts({ weeklyData, monthlyData }: DashboardChartsProp
                 return `${(value / 1000000).toFixed(1)}M`;
               }}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff3df' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff0f5' }} />
             <Legend
               verticalAlign="top"
               align="left"
@@ -138,8 +138,8 @@ export function DashboardCharts({ weeklyData, monthlyData }: DashboardChartsProp
                 </span>
               )}
             />
-            <Bar dataKey="cost" stackId="a" fill="#f4bd62" radius={[0, 0, 10, 10]} />
-            <Bar dataKey="profit" stackId="a" fill="#ee7b29" radius={[10, 10, 0, 0]} />
+            <Bar dataKey="cost" stackId="a" fill="#ee8fba" radius={[0, 0, 10, 10]} />
+            <Bar dataKey="profit" stackId="a" fill="#cf4a80" radius={[10, 10, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
