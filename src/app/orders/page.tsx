@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Copy, FileText, MapPin, Pencil, Printer, Trash2 } from 'lucide-react';
+import { Copy, FileText, LoaderCircle, MapPin, Pencil, Printer, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -85,6 +85,7 @@ export default function OrdersPage() {
   const [dateFilter, setDateFilter] = useState('');
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [isSyncingSpx, setIsSyncingSpx] = useState(false);
 
   const formatCurrency = useCallback((amt: number) => `${formatPrice(amt)}\u00A0đ`, []);
 
@@ -98,7 +99,6 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchOrders();
   }, []);
 
@@ -202,6 +202,38 @@ export default function OrdersPage() {
     router.push(`/orders/${billOrder.id}/invoice`);
   }, [billOrder, router]);
 
+  const handleSyncSpx = async () => {
+    try {
+      setIsSyncingSpx(true);
+
+      const res = await fetch('/api/orders/sync-spx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 20 }),
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error(result.error || 'Khong the dong bo trang thai SPX');
+        return;
+      }
+
+      if (result.updatedCount > 0) {
+        toast.success(`Da cap nhat ${result.updatedCount} don hoan tat tu SPX`);
+      } else if (result.failedCount > 0) {
+        toast.error(`SPX tra loi loi cho ${result.failedCount} don`);
+      } else {
+        toast.success('Khong co don nao chuyen sang da xong');
+      }
+
+      void fetchOrders();
+    } catch {
+      toast.error('Khong the dong bo trang thai SPX');
+    } finally {
+      setIsSyncingSpx(false);
+    }
+  };
+
   const getStatusText = (status: string) =>
     status === 'WAITING_FOR_GOODS'
       ? 'Đợi hàng về'
@@ -271,6 +303,19 @@ export default function OrdersPage() {
             </Link>
           </div>
         </div>
+        <Button
+          variant="outline"
+          className="w-full gap-2 text-xs md:w-auto"
+          onClick={handleSyncSpx}
+          disabled={isSyncingSpx}
+        >
+          {isSyncingSpx ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Đồng bộ SPX
+        </Button>
       </section>
 
       <section className="surface-panel grid gap-4 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
