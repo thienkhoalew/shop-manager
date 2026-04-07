@@ -44,7 +44,7 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetchProducts();
+    void fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
@@ -106,7 +106,7 @@ export default function ProductsPage() {
         toast.success(editingProduct ? 'Cập nhật sản phẩm thành công' : 'Thêm sản phẩm thành công');
         setIsOpen(false);
         resetForm();
-        fetchProducts();
+        void fetchProducts();
       } else {
         toast.error('Có lỗi xảy ra');
       }
@@ -141,7 +141,7 @@ export default function ProductsPage() {
 
       if (res.ok) {
         toast.success('Xóa sản phẩm thành công');
-        fetchProducts();
+        void fetchProducts();
       } else {
         const data = await res.json();
         toast.error(data.error || 'Xóa thất bại');
@@ -164,22 +164,50 @@ export default function ProductsPage() {
           if (!val) resetForm();
         }}
       >
-        <section className="surface-soft overflow-hidden px-5 py-4 sm:px-6 md:px-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <div className="relative min-w-0 sm:w-72">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Tìm tên sản phẩm..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+        <section className="page-hero px-5 py-6 sm:px-6 md:px-8">
+          <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="section-kicker">Danh mục bán hàng</p>
+              <h1 className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-foreground sm:text-4xl">
+                Sản phẩm
+              </h1>
             </div>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto" onClick={() => setEditingProduct(null)}>
-                Thêm sản phẩm
-              </Button>
-            </DialogTrigger>
+
+            <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
+              <div className="stat-tile p-4">
+                <p className="text-sm text-muted-foreground">Tổng sản phẩm</p>
+                <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-foreground">
+                  {products.length}
+                </p>
+              </div>
+              <div className="stat-tile p-4">
+                <p className="text-sm text-muted-foreground">Đang hiển thị</p>
+                <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-primary">
+                  {filteredProducts.length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="surface-panel px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative min-w-0 sm:w-80">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm tên sản phẩm..."
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto" onClick={() => setEditingProduct(null)}>
+                  Thêm sản phẩm
+                </Button>
+              </DialogTrigger>
+            </div>
           </div>
         </section>
 
@@ -296,15 +324,15 @@ export default function ProductsPage() {
           {filteredProducts.map((product) => (
             <article
               key={product.id}
-              className="surface-panel group overflow-hidden p-0 transition-transform duration-200 hover:-translate-y-0.5"
+              className="surface-panel group overflow-hidden p-0 transition-transform duration-200 hover:-translate-y-1"
             >
-              <div className="relative aspect-[0.9] overflow-hidden rounded-t-[1.65rem] bg-[linear-gradient(180deg,rgba(255,247,250,0.92),rgba(247,239,242,0.85))]">
+              <div className="relative aspect-[0.92] overflow-hidden rounded-t-[1.65rem] bg-[linear-gradient(180deg,rgba(255,247,234,0.96),rgba(243,236,224,0.88))]">
                 {product.imageUrl ? (
                   <Image
                     src={product.imageUrl}
                     alt={product.name}
                     fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   />
                 ) : (
@@ -332,14 +360,14 @@ export default function ProductsPage() {
                   <div className="flex shrink-0 gap-1">
                     <button
                       onClick={() => handleEdit(product)}
-                      className="rounded-xl border border-border/70 bg-white/80 p-2 text-slate-500 transition hover:text-primary"
+                      className="rounded-xl border border-border/80 bg-white p-2 text-slate-500 transition hover:border-primary/20 hover:text-primary"
                       title="Sửa sản phẩm"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(product.id)}
-                      className="rounded-xl border border-border/70 bg-white/80 p-2 text-slate-500 transition hover:text-red-500"
+                      className="rounded-xl border border-border/80 bg-white p-2 text-slate-500 transition hover:border-red-200 hover:text-red-500"
                       title="Xóa sản phẩm"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -347,8 +375,8 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-[1.3rem] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,241,245,0.86))] px-4 py-3">
-                  <p className="text-xs text-muted-foreground">Giá bán</p>
+                <div className="rounded-[1.3rem] border border-primary/10 bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(255,238,215,0.9))] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Giá bán</p>
                   <p className="mt-1 text-xl font-semibold tracking-[-0.04em] text-primary">
                     {formatPrice(product.salePrice)} đ
                   </p>

@@ -16,14 +16,16 @@ export function Sidebar() {
   return (
     <>
       <aside className="sticky top-0 hidden h-[100dvh] w-[280px] shrink-0 px-5 py-6 md:block">
-        <div className="surface-soft flex h-full flex-col px-4 py-4">
-          <div className="border-b border-border/70 px-3 pb-5 pt-2">
-            <p className="eyebrow">Rim Cung Shop</p>
-            <h1 className="mt-3 text-[1.75rem] font-semibold tracking-[-0.06em] text-foreground">
+        <div className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-sidebar-border/70 bg-[linear-gradient(180deg,rgba(39,50,76,0.98),rgba(29,40,64,0.98))] px-4 py-4 text-sidebar-foreground shadow-[0_28px_70px_-40px_rgba(15,23,42,0.7)]">
+          <div className="border-b border-white/10 px-3 pb-5 pt-2">
+            <p className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-sidebar-primary">
+              Rim Cưng Shop
+            </p>
+            <h1 className="mt-4 text-[1.9rem] font-semibold tracking-[-0.07em] text-white">
               Shop Manager
             </h1>
-            <p className="mt-2 max-w-[18ch] text-sm leading-6 text-muted-foreground">
-              Quản lý đơn và sản phẩm với nhịp hiển thị sáng, gọn, dễ nhìn mỗi ngày.
+            <p className="mt-3 max-w-[19ch] text-sm leading-6 text-white/68">
+              Theo dõi đơn, sản phẩm và nhịp bán hàng với giao diện sáng rõ, dễ quét thông tin.
             </p>
           </div>
 
@@ -39,26 +41,30 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={[
-                    'group flex items-center gap-3 rounded-[1.35rem] px-4 py-3 text-sm transition-all duration-200',
+                    'group flex items-center gap-3 rounded-[1.35rem] border px-4 py-3 text-sm transition-all duration-200',
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-[0_16px_30px_-18px_rgba(190,95,118,0.6)]'
-                      : 'text-slate-600 hover:bg-white/80 hover:text-foreground',
+                      ? 'border-white/10 bg-[linear-gradient(135deg,rgba(255,161,70,0.95),rgba(235,117,38,0.92))] text-primary-foreground shadow-[0_18px_32px_-18px_rgba(238,123,41,0.6)]'
+                      : 'border-transparent text-white/72 hover:border-white/10 hover:bg-white/6 hover:text-white',
                   ].join(' ')}
                 >
                   <span
                     className={[
                       'flex size-10 items-center justify-center rounded-2xl border transition-colors',
                       isActive
-                        ? 'border-white/25 bg-white/14'
-                        : 'border-border/70 bg-white/72 text-primary/70 group-hover:bg-primary/8',
+                        ? 'border-white/18 bg-white/14'
+                        : 'border-white/12 bg-white/8 text-sidebar-primary group-hover:bg-white/12',
                     ].join(' ')}
                   >
                     <Icon className="h-[1.05rem] w-[1.05rem]" strokeWidth={1.85} />
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="font-medium">{item.name}</span>
-                    <span className={isActive ? 'text-primary-foreground/70' : 'text-xs text-muted-foreground'}>
-                      {item.href === '/' ? 'Nhịp kinh doanh hôm nay' : item.href === '/orders' ? 'Theo dõi khách và vận đơn' : 'Quản lý danh mục bán hàng'}
+                    <span className={isActive ? 'text-primary-foreground/72' : 'text-xs text-white/45'}>
+                      {item.href === '/'
+                        ? 'Doanh thu và hiệu suất hôm nay'
+                        : item.href === '/orders'
+                          ? 'Theo dõi khách, cọc và vận đơn'
+                          : 'Quản lý danh mục bán hàng'}
                     </span>
                   </span>
                 </Link>
@@ -66,19 +72,19 @@ export function Sidebar() {
             })}
           </nav>
 
-          <div className="mt-auto rounded-[1.5rem] border border-border/70 bg-white/70 px-4 py-4 text-sm text-slate-600">
-            <p className="font-medium text-foreground">Ưu tiên iPhone</p>
-            <p className="mt-1 leading-6 text-muted-foreground">
-              Điều hướng và khoảng chạm đã được tối ưu cho thao tác một tay.
+          <div className="mt-auto rounded-[1.5rem] border border-white/10 bg-white/6 px-4 py-4 text-sm text-white/78">
+            <p className="font-medium text-white">Tối ưu mobile</p>
+            <p className="mt-1 leading-6 text-white/58">
+              Thanh điều hướng và vùng chạm đã được giữ rộng để thao tác một tay trên iPhone dễ hơn.
             </p>
           </div>
         </div>
       </aside>
 
       <div className="md:hidden">
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-28 bg-gradient-to-t from-[#fff7fa] via-[#fff7fa]/92 to-transparent" />
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-28 bg-gradient-to-t from-[#f8f4ec] via-[#f8f4ec]/92 to-transparent" />
         <nav className="mobile-safe-pb fixed inset-x-0 bottom-0 z-50 px-3">
-          <div className="mx-auto mb-2 flex max-w-md items-center justify-between gap-2 rounded-[1.75rem] border border-white/70 bg-white/88 px-2 py-2 shadow-[0_18px_40px_-22px_rgba(160,85,105,0.34)] backdrop-blur-md">
+          <div className="mx-auto mb-2 flex max-w-md items-center justify-between gap-2 rounded-[1.75rem] border border-white/80 bg-[rgba(35,47,71,0.92)] px-2 py-2 shadow-[0_18px_40px_-22px_rgba(32,40,61,0.48)] backdrop-blur-md">
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
@@ -92,8 +98,8 @@ export function Sidebar() {
                   className={[
                     'flex min-w-0 flex-1 flex-col items-center justify-center rounded-[1.15rem] px-2 py-2.5 text-center transition-all duration-200 active:scale-[0.98]',
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-[0_14px_24px_-18px_rgba(185,91,115,0.7)]'
-                      : 'text-slate-500 hover:bg-primary/6 hover:text-foreground',
+                      ? 'bg-[linear-gradient(135deg,rgba(255,161,70,0.98),rgba(235,117,38,0.96))] text-primary-foreground shadow-[0_14px_24px_-18px_rgba(238,123,41,0.7)]'
+                      : 'text-white/62 hover:bg-white/8 hover:text-white',
                   ].join(' ')}
                 >
                   <Icon className="h-[1.15rem] w-[1.15rem]" strokeWidth={1.9} />

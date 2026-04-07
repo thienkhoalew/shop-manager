@@ -21,7 +21,6 @@ function formatCurrency(value: number) {
 export default async function Home() {
   let totalOrders = 0;
   let shippingOrders = 0;
-  let totalProducts = 0;
   let totalRevenue = 0;
   let totalProfit = 0;
   let weeklyData: ChartDataPoint[] = [];
@@ -31,10 +30,9 @@ export default async function Home() {
     const now = new Date();
     const sixMonthsAgo = subMonths(now, 6);
 
-    const [ordersCount, shippingCount, productsCount, totalStats, recentDoneOrders] = await Promise.all([
+    const [ordersCount, shippingCount, totalStats, recentDoneOrders] = await Promise.all([
       prisma.order.count(),
       prisma.order.count({ where: { status: 'SHIPPING' } }),
-      prisma.product.count(),
       prisma.$queryRaw<{ totalrevenue: number | null; totalprofit: number | null }[]>`
         SELECT
           SUM("OrderItem"."salePrice" * "OrderItem"."quantity") as totalrevenue,
@@ -55,7 +53,6 @@ export default async function Home() {
 
     totalOrders = ordersCount;
     shippingOrders = shippingCount;
-    totalProducts = productsCount;
 
     if (totalStats?.[0]) {
       totalRevenue = Number(totalStats[0].totalrevenue || 0);
@@ -118,38 +115,34 @@ export default async function Home() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <section className="surface-soft overflow-hidden px-5 py-5 sm:px-6 md:px-8">
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
-          <div className="surface-panel p-5">
-            <p className="text-sm text-muted-foreground">Tổng đơn hàng</p>
-            <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-primary">{totalOrders}</p>
-          </div>
-          <div className="surface-panel p-5">
-            <p className="text-sm text-muted-foreground">Đơn đang giao</p>
-            <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-foreground">{shippingOrders}</p>
-          </div>
-          <div className="surface-panel p-5 col-span-2 sm:col-span-1">
-            <p className="text-sm text-muted-foreground">Sản phẩm</p>
-            <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-foreground">{totalProducts}</p>
-          </div>
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="stat-tile p-5">
+          <p className="text-sm text-muted-foreground">Tổng đơn hàng</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-foreground">{totalOrders}</p>
+        </div>
+        <div className="stat-tile p-5">
+          <p className="text-sm text-muted-foreground">Đơn đang giao</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-foreground">{shippingOrders}</p>
+        </div>
+        <div className="stat-tile p-5">
+          <p className="text-sm text-muted-foreground">Doanh thu đã chốt</p>
+          <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-primary">{formatCurrency(totalRevenue)}</p>
         </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="surface-panel p-5 sm:p-6">
-          <p className="text-sm text-muted-foreground">Tổng doanh thu</p>
+          <p className="eyebrow">Doanh thu</p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-primary sm:text-3xl">
             {formatCurrency(totalRevenue)}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">Chỉ tính đơn đã hoàn thành</p>
         </div>
 
         <div className="surface-panel p-5 sm:p-6">
-          <p className="text-sm text-muted-foreground">Tổng lợi nhuận</p>
+          <p className="eyebrow">Lợi nhuận</p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground sm:text-3xl">
             {formatCurrency(totalProfit)}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">Chỉ tính đơn đã hoàn thành</p>
         </div>
       </section>
 

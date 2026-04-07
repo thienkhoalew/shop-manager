@@ -47,7 +47,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     const revenue = cost + profit;
 
     return (
-      <div className="rounded-[1.35rem] border border-white/70 bg-white/96 p-4 shadow-[0_22px_55px_-34px_rgba(112,61,76,0.42)]">
+      <div className="rounded-[1.35rem] border border-white/80 bg-white/98 p-4 shadow-[0_22px_55px_-34px_rgba(64,76,105,0.3)]">
         <p className="text-sm font-semibold text-foreground">{label}</p>
         <div className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-5 text-slate-600">
@@ -78,17 +78,14 @@ export function DashboardCharts({ weeklyData, monthlyData }: DashboardChartsProp
   return (
     <section className="surface-panel overflow-hidden p-5 sm:p-6 md:p-7">
       <div className="flex flex-col gap-5 border-b border-border/70 pb-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="eyebrow">Biểu đồ lợi nhuận</p>
-
-        </div>
+        <p className="eyebrow">Biểu đồ lợi nhuận</p>
 
         <div className="inline-flex w-fit rounded-full border border-border/70 bg-secondary/80 p-1">
           <button
             className={[
               'rounded-full px-4 py-2 text-sm font-medium transition-all',
               viewMode === 'week'
-                ? 'bg-white text-primary shadow-[0_10px_24px_-18px_rgba(156,80,100,0.55)]'
+                ? 'bg-white text-primary shadow-[0_10px_24px_-18px_rgba(238,123,41,0.45)]'
                 : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
             onClick={() => setViewMode('week')}
@@ -99,7 +96,7 @@ export function DashboardCharts({ weeklyData, monthlyData }: DashboardChartsProp
             className={[
               'rounded-full px-4 py-2 text-sm font-medium transition-all',
               viewMode === 'month'
-                ? 'bg-white text-primary shadow-[0_10px_24px_-18px_rgba(156,80,100,0.55)]'
+                ? 'bg-white text-primary shadow-[0_10px_24px_-18px_rgba(238,123,41,0.45)]'
                 : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
             onClick={() => setViewMode('month')}
@@ -112,24 +109,24 @@ export function DashboardCharts({ weeklyData, monthlyData }: DashboardChartsProp
       <div className="mt-6 h-[380px] w-full min-w-0 sm:h-[420px]">
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart data={data} margin={{ top: 12, right: 8, left: -18, bottom: 4 }} barSize={30}>
-            <CartesianGrid vertical={false} strokeDasharray="3 6" stroke="#ead8de" />
+            <CartesianGrid vertical={false} strokeDasharray="3 6" stroke="#e8dfd1" />
             <XAxis
               dataKey="label"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#7c6870', fontSize: 11 }}
+              tick={{ fill: '#6b7280', fontSize: 11 }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#7c6870', fontSize: 11 }}
+              tick={{ fill: '#6b7280', fontSize: 11 }}
               tickFormatter={(value) => {
                 if (value === 0) return '0';
                 return `${(value / 1000000).toFixed(1)}M`;
               }}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff1f5' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff3df' }} />
             <Legend
               verticalAlign="top"
               align="left"
@@ -141,8 +138,8 @@ export function DashboardCharts({ weeklyData, monthlyData }: DashboardChartsProp
                 </span>
               )}
             />
-            <Bar dataKey="cost" stackId="a" fill="#d5b1ba" radius={[0, 0, 10, 10]} />
-            <Bar dataKey="profit" stackId="a" fill="#be5c72" radius={[10, 10, 0, 0]} />
+            <Bar dataKey="cost" stackId="a" fill="#f4bd62" radius={[0, 0, 10, 10]} />
+            <Bar dataKey="profit" stackId="a" fill="#ee7b29" radius={[10, 10, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
