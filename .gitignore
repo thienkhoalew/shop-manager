@@ -32,6 +32,7 @@ yarn-error.log*
 .next-dev.out.log
 .next-dev.err.log
 .logs/
+.codex
 
 # env files (can opt-in for committing if needed)
 .env*

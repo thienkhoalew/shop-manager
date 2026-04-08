@@ -55,6 +55,23 @@ const WINDOWS_BROWSER_PATHS = [
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
 ].filter(Boolean) as string[];
 
+const LINUX_BROWSER_PATHS = [
+  process.env.SPX_BROWSER_EXECUTABLE,
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/snap/bin/chromium',
+  '/usr/bin/microsoft-edge',
+].filter(Boolean) as string[];
+
+const MACOS_BROWSER_PATHS = [
+  process.env.SPX_BROWSER_EXECUTABLE,
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+  '/Applications/Chromium.app/Contents/MacOS/Chromium',
+].filter(Boolean) as string[];
+
 function stripVietnamese(text: string) {
   return text
     .normalize('NFD')
@@ -137,11 +154,15 @@ export function mapSpxStatusToOrderStatus(input: {
 }
 
 function resolveBrowserExecutablePath() {
-  if (process.platform !== 'win32') {
-    return process.env.SPX_BROWSER_EXECUTABLE || undefined;
+  if (process.platform === 'win32') {
+    return WINDOWS_BROWSER_PATHS.find((candidate) => existsSync(candidate));
   }
 
-  return WINDOWS_BROWSER_PATHS.find((candidate) => existsSync(candidate));
+  if (process.platform === 'darwin') {
+    return MACOS_BROWSER_PATHS.find((candidate) => existsSync(candidate));
+  }
+
+  return LINUX_BROWSER_PATHS.find((candidate) => existsSync(candidate));
 }
 
 async function launchBrowser() {
@@ -156,7 +177,7 @@ async function launchBrowser() {
   } catch (error) {
     const details = error instanceof Error ? error.message : 'Unknown browser error';
     throw new Error(
-      `Cannot launch browser for SPX sync. Set SPX_BROWSER_EXECUTABLE or install a compatible browser. ${details}`,
+      `Cannot launch browser for SPX sync. Set SPX_BROWSER_EXECUTABLE, install a system Chrome/Chromium, or run "npx playwright install chromium". ${details}`,
     );
   }
 }
