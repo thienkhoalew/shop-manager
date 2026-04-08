@@ -17,7 +17,8 @@ import { formatPrice } from '@/lib/utils';
 import { getDisplayCodTotal, getDisplayProductTotal } from '@/lib/order-display';
 import { getProductSearchResults } from '@/lib/product-search';
 import { printInvoiceFromElement } from '@/lib/print-invoice';
-import { FileText, Printer, Search } from 'lucide-react';
+import { findBestProductMatch, type ParsedOrderDraft } from '@/lib/order-ai';
+import { FileText, LoaderCircle, Printer, Search, Sparkles } from 'lucide-react';
 
 type Product = {
     id: string;
@@ -48,6 +49,8 @@ export default function NewOrderPage() {
     const [isOldCustomer, setIsOldCustomer] = useState(false);
     const [isBillOpen, setIsBillOpen] = useState(false);
     const [quickPasteText, setQuickPasteText] = useState('');
+    const [isParsingQuickPaste, setIsParsingQuickPaste] = useState(false);
+    const [parseNotes, setParseNotes] = useState<string[]>([]);
     const [isFullDeposit, setIsFullDeposit] = useState(false);
     const [productSearchQuery, setProductSearchQuery] = useState('');
     const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
@@ -185,42 +188,89 @@ export default function NewOrderPage() {
         setOrderItems(orderItems.filter((_, i) => i !== idx));
     }, [orderItems]);
 
-    const handleQuickPaste = (text: string) => {
-        setQuickPasteText(text);
-        if (!text.trim()) return;
+    const applyParsedOrderDraft = useCallback((draft: ParsedOrderDraft) => {
+        const unmatchedProducts: string[] = [];
+        const matchedOrderItems: OrderItemForm[] = draft.items.flatMap((item) => {
+            const product = findBestProductMatch(products, item.productId, item.productName);
 
-        const nameMatch = text.match(/🛍️Tên người nhận:\s*(.*)/i);
-        const phoneMatch = text.match(/☎️Sđt:\s*([\d\s]+)/i);
-        const addressMatch = text.match(/🏠Địa chỉ.*:\s*(.*)/i);
-        const depositMatch = text.match(/🧧Đã cọc:\s*(.*)/i);
-        const shipMatch = text.match(/🛵Tiền Ship:\s*(.*)/i);
-
-        if (nameMatch) setCustomerName(nameMatch[1].trim());
-        if (phoneMatch) setCustomerPhone(phoneMatch[1].trim());
-        if (addressMatch) setCustomerAddress(addressMatch[1].trim());
-        
-        if (shipMatch) {
-            const shipStr = shipMatch[1].trim().toLowerCase();
-            // Handle 15k -> 15000
-            const shipVal = parseInt(shipStr.replace(/k/g, '000').replace(/[^\d]/g, ''));
-            if (!isNaN(shipVal)) setShippingFee(shipVal);
-        }
-
-        if (depositMatch) {
-            const depStr = depositMatch[1].trim().toLowerCase();
-            if (depStr.includes('full') || depStr.includes('chuyển khoản full') || depStr.includes('ckf')) {
-                setHasDeposit('yes');
-                setIsFullDeposit(true);
-            } else {
-                setIsFullDeposit(false);
-                const depVal = parseInt(depStr.replace(/k/g, '000').replace(/[^\d]/g, ''));
-                if (!isNaN(depVal)) {
-                    setHasDeposit('yes');
-                    setDepositAmount(depVal);
-                }
+            if (!product) {
+                unmatchedProducts.push(item.productName);
+                return [];
             }
+
+            return [{
+                productId: product.id,
+                quantity: item.quantity || 1,
+                product,
+            }];
+        });
+
+        setCustomerName(draft.customerName ?? '');
+        setCustomerPhone(draft.customerPhone ?? '');
+        setCustomerAddress(draft.customerAddress ?? '');
+        setShippingFee(draft.shippingFee ?? 0);
+        setIsOldCustomer(draft.isOldCustomer ?? false);
+
+        if (draft.depositStatus === 'full_deposit') {
+            setHasDeposit('yes');
+            setIsFullDeposit(true);
+            setDepositAmount(draft.depositAmount ?? '');
+        } else if (draft.depositStatus === 'partial_deposit') {
+            setHasDeposit('yes');
+            setIsFullDeposit(false);
+            setDepositAmount(draft.depositAmount ?? '');
+        } else {
+            setHasDeposit('no');
+            setIsFullDeposit(false);
+            setDepositAmount('');
         }
-    };
+
+        setOrderItems(matchedOrderItems);
+        setParseNotes([
+            ...draft.notes,
+            ...unmatchedProducts.map((productName) => `Chưa ghép được sản phẩm trong catalog: ${productName}`),
+        ]);
+
+        if (matchedOrderItems.length > 0) {
+            toast.success(`AI đã điền ${matchedOrderItems.length} sản phẩm vào đơn.`);
+        } else {
+            toast.error('AI chưa ghép được sản phẩm nào từ nội dung vừa dán.');
+        }
+
+        if (unmatchedProducts.length > 0) {
+            toast.error(`Có ${unmatchedProducts.length} sản phẩm chưa ghép được vào danh mục hiện tại.`);
+        }
+    }, [products]);
+
+    const handleParseQuickPaste = useCallback(async () => {
+        if (!quickPasteText.trim()) {
+            toast.error('Vui lòng dán nội dung đơn hàng trước.');
+            return;
+        }
+
+        setIsParsingQuickPaste(true);
+        setParseNotes([]);
+
+        try {
+            const res = await fetch('/api/orders/parse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: quickPasteText }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data?.error || 'AI chưa phân tích được nội dung này.');
+            }
+
+            applyParsedOrderDraft(data as ParsedOrderDraft);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Không thể phân tích nội dung bằng AI.');
+        } finally {
+            setIsParsingQuickPaste(false);
+        }
+    }, [applyParsedOrderDraft, quickPasteText]);
 
     const calculateItemsTotal = useCallback(() => {
         return getDisplayProductTotal(
@@ -325,9 +375,38 @@ export default function NewOrderPage() {
                         className="w-full h-24 p-2 text-sm border rounded-md focus:ring-rose-500 focus:border-rose-500"
                         placeholder="Dán nội dung đơn hàng vào đây để tự động điền thông tin..."
                         value={quickPasteText}
-                        onChange={(e) => handleQuickPaste(e.target.value)}
+                        onChange={(e) => setQuickPasteText(e.target.value)}
                     />
-                    <p className="text-[10px] text-rose-400 italic">Hỗ trợ format: Tên người nhận, Sđt, Địa chỉ cũ, Đã cọc, Tiền Ship.</p>
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <p className="text-[10px] text-rose-500 italic">
+                            Dán tin nhắn tự do, AI sẽ tự nhận diện khách hàng, sản phẩm, ship và tiền cọc.
+                        </p>
+                        <Button
+                            type="button"
+                            className="gap-2 w-full md:w-auto"
+                            onClick={handleParseQuickPaste}
+                            disabled={isParsingQuickPaste || products.length === 0}
+                        >
+                            {isParsingQuickPaste ? (
+                                <>
+                                    <LoaderCircle className="w-4 h-4 animate-spin" />
+                                    Đang phân tích...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-4 h-4" />
+                                    AI điền form
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                    {parseNotes.length > 0 && (
+                        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 space-y-1">
+                            {parseNotes.map((note, index) => (
+                                <p key={`${index}-${note}`}>{note}</p>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-lg border shadow-sm">
